@@ -1,43 +1,44 @@
-import { Sequelize } from 'sequelize';
+import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const sequelize = new Sequelize({
-  dialect: 'mysql',
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  username: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'campuskart',
-  logging: false,
-  define: {
-    timestamps: true,
-    underscored: true,
-    freezeTableName: true
-  },
-  pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
-    evict: 1000
-  }
-});
+if (!process.env.MONGODB_URI) {
+  throw new Error('MONGODB_URI is not defined in environment variables');
+}
+
+const MONGODB_URI = process.env.MONGODB_URI;
+const DB_NAME = process.env.MONGODB_DB_NAME || 'test';
+
+mongoose.set('debug', process.env.NODE_ENV === 'development'); // Enable debug logging in development
+
+const options = {
+  serverSelectionTimeoutMS: 30000, // 30 seconds
+  socketTimeoutMS: 45000, // 45 seconds
+  connectTimeoutMS: 30000, // 30 seconds
+  maxPoolSize: 10,
+  minPoolSize: 5,
+  dbName: DB_NAME // Use database name from environment variable
+};
 
 export const connectDB = async () => {
   try {
-    await sequelize.authenticate();
-    console.log('Database connection has been established successfully.');
+    console.log('Attempting to connect to MongoDB...');
+    console.log('Connection URI:', MONGODB_URI.replace(/\/\/[^@]+@/, '//****:****@')); // Hide credentials in logs
     
-    // Sync without force to preserve existing data
-    await sequelize.sync();
-    console.log('Database synchronized successfully');
+    await mongoose.connect(MONGODB_URI, options);
+    console.log('Connected to MongoDB successfully');
+    
+    // Create indexes
+    console.log('Creating indexes...');
+    await mongoose.connection.db.collection('users').createIndex({ email: 1 }, { unique: true });
+    await mongoose.connection.db.collection('users').createIndex({ username: 1 }, { unique: true });
+    await mongoose.connection.db.collection('products').createIndex({ userId: 1 });
+    console.log('Database indexes created successfully');
   } catch (error) {
-    console.error('Unable to connect to the database:', error);
-    console.error('Database connection failed, retrying in 5 seconds...');
-    setTimeout(connectDB, 5000);
+    console.error('MongoDB connection error:', error);
+    process.exit(1);
   }
 };
 
-export default sequelize; 
+export default mongoose; 

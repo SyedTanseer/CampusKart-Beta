@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import User from '../models/User';
+import User, { IUser } from '../models/User';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -25,13 +25,13 @@ export const register = async (req: Request, res: Response) => {
     });
 
     // Generate JWT token
-    const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1d' });
 
     res.status(201).json({
       message: 'User registered successfully',
       token,
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
       },
     });
@@ -58,18 +58,78 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1d' });
 
     res.json({
       message: 'Login successful',
       token,
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
       },
     });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Error logging in' });
+  }
+};
+
+interface UpdateProfileBody {
+  name?: string;
+  email?: string;
+  phone?: string;
+  bio?: string;
+  profile_picture?: string;
+}
+
+export const updateProfile = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const updateData: UpdateProfileBody = req.body;
+    
+    // Validate email if provided
+    if (updateData.email) {
+      const existingUser = await User.findOne({ 
+        email: updateData.email,
+        _id: { $ne: userId }
+      });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+    }
+
+    // Validate phone if provided
+    if (updateData.phone) {
+      const existingUser = await User.findOne({ 
+        phone: updateData.phone,
+        _id: { $ne: userId }
+      });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Phone number already in use' });
+      }
+    }
+
+    // Update only provided fields
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ message: 'Error updating profile' });
   }
 }; 
