@@ -8,10 +8,10 @@ const router = Router();
 // Register a new user
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, name } = req.body;
+    const { username, email, password, name, phone } = req.body;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ where: { email } });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -25,21 +25,25 @@ router.post('/register', async (req, res) => {
       email,
       password: hashedPassword,
       name,
+      phone,
+      user_type: 'normal' // Default user type
     });
 
     // Generate JWT token
     const token = jwt.sign(
-      { id: user.id, username: user.username },
+      { id: user._id, username: user.username, user_type: user.user_type },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
 
     res.status(201).json({
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
         email: user.email,
         name: user.name,
+        phone: user.phone,
+        user_type: user.user_type
       },
       token,
     });
@@ -55,7 +59,7 @@ router.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     // Find user
-    const user = await User.findOne({ where: { username } });
+    const user = await User.findOne({ username });
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -68,17 +72,18 @@ router.post('/login', async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { id: user.id, username: user.username },
+      { id: user._id, username: user.username, user_type: user.user_type },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
     );
 
     res.json({
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
         email: user.email,
         name: user.name,
+        user_type: user.user_type
       },
       token,
     });
@@ -89,15 +94,15 @@ router.post('/login', async (req, res) => {
 });
 
 // Verify token
-router.post('/verify', async (req, res) => {
+router.get('/verify', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
       return res.status(401).json({ message: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { id: number };
-    const user = await User.findByPk(decoded.id);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { id: string };
+    const user = await User.findById(decoded.id);
 
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
@@ -105,10 +110,11 @@ router.post('/verify', async (req, res) => {
 
     res.json({
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
         email: user.email,
         name: user.name,
+        user_type: user.user_type
       },
     });
   } catch (error) {

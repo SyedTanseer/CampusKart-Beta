@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
-import { Op } from 'sequelize';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -10,31 +9,34 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 // Register route
 router.post('/register', async (req: Request, res: Response) => {
   try {
+    console.log('Registration request received:', { body: req.body });
+    
     const { username, password, email, name, phone } = req.body;
 
     // Basic validation
-    if (!username || !password || !email || !name) {
+    if (!username || !password || !email || !name || !phone) {
+      console.log('Missing required fields:', { username, email, name, phone });
       return res.status(400).json({ 
         message: 'Missing required fields',
         errors: {
           ...(!username && { username: 'Username is required' }),
           ...(!password && { password: 'Password is required' }),
           ...(!email && { email: 'Email is required' }),
-          ...(!name && { name: 'Name is required' })
+          ...(!name && { name: 'Name is required' }),
+          ...(!phone && { phone: 'Phone is required' })
         }
       });
     }
 
     // Check if user already exists
     const existingUser = await User.findOne({ 
-      where: { 
-        [Op.or]: [
-          { username },
-          { email }
-        ]
-      } 
+      $or: [
+        { username },
+        { email }
+      ]
     });
     if (existingUser) {
+      console.log('User already exists:', { username, email });
       return res.status(400).json({ 
         message: 'User already exists',
         errors: {
@@ -46,19 +48,31 @@ router.post('/register', async (req: Request, res: Response) => {
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
+    console.log('Password hashed successfully');
 
     // Create user
+    console.log('Attempting to create user with data:', {
+      username,
+      email,
+      name,
+      phone,
+      user_type: 'normal'
+    });
+
     const user = await User.create({
       username,
       password: hashedPassword,
       email,
       name,
-      phone: phone || null, // Handle empty phone number
+      phone,
+      user_type: 'normal'
     });
+
+    console.log('User created successfully:', { userId: user._id });
 
     // Generate JWT token
     const token = jwt.sign(
-      { id: user.id },
+      { id: user._id },
       JWT_SECRET,
       { expiresIn: '1d' }
     );
@@ -67,7 +81,7 @@ router.post('/register', async (req: Request, res: Response) => {
       message: 'User registered successfully',
       token,
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
         email: user.email,
         name: user.name,
@@ -76,12 +90,20 @@ router.post('/register', async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
-    console.error('Registration error:', error);
+    console.error('Registration error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      code: error.code,
+      keyPattern: error.keyPattern,
+      keyValue: error.keyValue,
+      errors: error.errors
+    });
     
     // Handle validation errors
-    if (error.name === 'SequelizeValidationError') {
-      const errors = error.errors.reduce((acc: any, err: any) => {
-        acc[err.path] = err.message;
+    if (error.name === 'ValidationError') {
+      const errors = Object.keys(error.errors).reduce((acc: any, key: string) => {
+        acc[key] = error.errors[key].message;
         return acc;
       }, {});
       
@@ -90,10 +112,22 @@ router.post('/register', async (req: Request, res: Response) => {
         errors
       });
     }
+
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({
+        message: 'Duplicate field error',
+        errors: {
+          [field]: `${field} already exists`
+        }
+      });
+    }
     
     res.status(500).json({ 
       message: 'Error registering user',
-      error: error.message 
+      error: error.message,
+      details: error.stack
     });
   }
 });
@@ -115,7 +149,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Find user
-    const user = await User.findOne({ where: { username } });
+    const user = await User.findOne({ username });
     if (!user) {
       return res.status(401).json({ 
         message: 'Invalid credentials',
@@ -138,7 +172,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { id: user.id },
+      { id: user._id },
       JWT_SECRET,
       { expiresIn: '1d' }
     );
@@ -147,7 +181,7 @@ router.post('/login', async (req: Request, res: Response) => {
       message: 'Login successful',
       token,
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
         email: user.email,
         name: user.name,
@@ -172,8 +206,8 @@ router.get('/me', async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: number };
-    const user = await User.findByPk(decoded.id);
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string };
+    const user = await User.findById(decoded.id);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -181,7 +215,7 @@ router.get('/me', async (req: Request, res: Response) => {
 
     res.json({
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
         email: user.email,
         name: user.name,

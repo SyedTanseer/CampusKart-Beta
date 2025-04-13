@@ -7,31 +7,98 @@ import { Label } from '@/components/ui/label';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
+interface FormData {
+  username: string;
+  email: string;
+  password: string;
+  name: string;
+  phone: string;
+  confirmPassword: string;
+}
+
+interface FormErrors {
+  [key: string]: string;
+}
+
 const RegisterPage = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     username: '',
     email: '',
     password: '',
     name: '',
     phone: '',
+    confirmPassword: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrors({});
+
+    if (!validateForm()) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
       await register(formData);
       toast.success('Account created successfully!');
       navigate('/');
-    } catch (error) {
-      toast.error('Failed to create account. Please try again.');
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      if (error.response?.status === 500) {
+        toast.error('Server error. Please try again later.');
+      } else if (error.response?.data?.errors) {
+        setErrors(error.response.data.errors);
+        toast.error(error.response.data.message || 'Failed to create account.');
+      } else {
+        toast.error('Failed to create account. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    if (!formData.name.trim()) {
+      errors.name = 'Name is required';
+    }
+    
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+    
+    if (!formData.phone.trim()) {
+      errors.phone = 'Phone number is required';
+    } else if (!/^\d{10}$/.test(formData.phone)) {
+      errors.phone = 'Phone number must be exactly 10 digits';
+    }
+    
+    if (!formData.password) {
+      errors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      errors.password = 'Password must be at least 6 characters long';
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+    
+    setErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
   };
 
   return (
@@ -45,7 +112,7 @@ const RegisterPage = () => {
               id="name"
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -55,7 +122,7 @@ const RegisterPage = () => {
               id="username"
               type="text"
               value={formData.username}
-              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -65,18 +132,25 @@ const RegisterPage = () => {
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              onChange={handleInputChange}
               required
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone (Optional)</Label>
+            <Label htmlFor="phone">Phone</Label>
             <Input
               id="phone"
               type="tel"
               value={formData.phone}
-              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+              onChange={handleInputChange}
+              required
+              placeholder="Enter your phone number"
+              pattern="[0-9]{10}"
+              title="Please enter a valid 10-digit phone number"
             />
+            {errors.phone && (
+              <p className="text-sm text-destructive">{errors.phone}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
@@ -84,7 +158,17 @@ const RegisterPage = () => {
               id="password"
               type="password"
               value={formData.password}
-              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              onChange={handleInputChange}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={formData.confirmPassword}
+              onChange={handleInputChange}
               required
             />
           </div>

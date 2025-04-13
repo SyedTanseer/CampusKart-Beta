@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -77,6 +77,11 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
           <DialogTitle>
             {isSignUp ? 'Create an Account' : 'Welcome to CampusKart'}
           </DialogTitle>
+          <DialogDescription>
+            {isSignUp 
+              ? 'Fill in your details to create a new account'
+              : 'Sign in to your account to continue'}
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -154,8 +159,9 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
           <Button
             variant="outline"
             type="button"
-            className="w-full"
+            className="w-full opacity-50 cursor-not-allowed"
             onClick={handleGoogleSignIn}
+            disabled
           >
             <FcGoogle className="mr-2 h-4 w-4" />
             Google

@@ -1,13 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-
-interface User {
-  id: number;
-  username: string;
-  email: string;
-  name: string;
-  phone?: string;
-  profilePicture?: string;
-}
+import { User } from '@/types';
+import { api } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -19,10 +12,11 @@ interface AuthContextType {
     email: string;
     password: string;
     name: string;
-    phone?: string;
+    phone: string;
   }) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  updateUser: (userData: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,27 +32,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkAuth = async () => {
       try {
         const token = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-
-        if (token && storedUser) {
-          // Verify token with backend
-          const response = await fetch('http://localhost:5000/api/auth/verify', {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-
-          if (response.ok) {
-            setUser(JSON.parse(storedUser));
-            setIsAuthenticated(true);
-          } else {
-            // Token is invalid or expired
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-          }
+        if (token) {
+          const response = await api.get('/auth/verify');
+          setUser(response.data.user);
+          setIsAuthenticated(true);
         }
       } catch (err) {
         console.error('Auth verification error:', err);
+        // Clear auth state on verification failure
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setUser(null);
+        setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
       }
@@ -70,28 +55,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (username: string, password: string) => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login failed');
-      }
-
-      const data = await response.json();
-      setUser(data.user);
-      setIsAuthenticated(true);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('token', data.token);
       setError('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
-      throw err;
+      const response = await api.post('/auth/login', { username, password });
+      const { user: userData, token } = response.data;
+      
+      // Store user data and token
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      // Update state
+      setUser(userData);
+      setIsAuthenticated(true);
+      
+      return response.data;
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Login failed';
+      const fieldErrors = err.response?.data?.errors || {};
+      setError(errorMessage);
+      throw new Error(JSON.stringify({ message: errorMessage, errors: fieldErrors }));
     } finally {
       setIsLoading(false);
     }
@@ -102,30 +83,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     email: string;
     password: string;
     name: string;
-    phone?: string;
+    phone: string;
   }) => {
     try {
       setIsLoading(true);
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Registration failed');
-      }
-
-      const result = await response.json();
-      setUser(result.user);
+      console.log('Registering user with data:', JSON.stringify(data, null, 2));
+      const response = await api.post('/auth/register', data);
+      console.log('Registration response:', response.data);
+      const { user: userData, token } = response.data;
+      setUser(userData);
       setIsAuthenticated(true);
-      localStorage.setItem('user', JSON.stringify(result.user));
-      localStorage.setItem('token', result.token);
+      localStorage.setItem('token', token);
       setError('');
     } catch (err) {
+      console.error('Registration error:', err);
+      console.error('Registration error response:', err.response?.data);
       setError(err instanceof Error ? err.message : 'Registration failed');
       throw err;
     } finally {
@@ -136,9 +108,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('user');
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setError('');
+  };
+
+  const updateUser = (userData: User) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
   return (
@@ -150,7 +127,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         login, 
         register, 
         logout,
-        isAuthenticated
+        isAuthenticated,
+        updateUser
       }}
     >
       {children}

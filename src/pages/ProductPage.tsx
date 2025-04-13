@@ -1,21 +1,57 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import Layout from '@/components/layout/Layout';
+import ProductLayout from '@/components/layout/ProductLayout';
 import ProductDetail from '@/components/product/ProductDetail';
-import { products } from '@/data/mockData';
+import { getProductById } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { Product } from '@/types';
 
 const ProductPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  const product = products.find(p => p.id === id);
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        const data = await getProductById(id);
+        setProduct(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching product:', err);
+        setError('Failed to load product details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id]);
   
-  if (!product) {
+  if (loading) {
     return (
-      <Layout>
+      <ProductLayout>
+        <div className="container mx-auto px-4 py-16 text-center">
+          <p>Loading product details...</p>
+        </div>
+      </ProductLayout>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <ProductLayout>
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-2xl font-bold mb-4">Product Not Found</h1>
           <p className="mb-8">The product you're looking for doesn't exist or has been removed.</p>
@@ -23,18 +59,18 @@ const ProductPage = () => {
             Back to Home
           </Button>
         </div>
-      </Layout>
+      </ProductLayout>
     );
   }
   
   return (
-    <Layout>
-      <div className="bg-gray-100 min-h-screen">
+    <ProductLayout>
+      <div className="bg-background min-h-screen">
         <div className="container mx-auto px-4 py-4">
           <Button 
             variant="ghost" 
             onClick={() => navigate(-1)} 
-            className="flex items-center text-marketplace-secondary mb-4"
+            className="flex items-center text-muted-foreground hover:text-foreground mb-4"
           >
             <ArrowLeft size={16} className="mr-2" />
             Back to results
@@ -43,7 +79,7 @@ const ProductPage = () => {
           <ProductDetail product={product} />
         </div>
       </div>
-    </Layout>
+    </ProductLayout>
   );
 };
 

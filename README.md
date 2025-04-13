@@ -1,73 +1,121 @@
-# Welcome to your Lovable project
+# CampusKart - Campus Marketplace Platform
 
-## Project info
+CampusKart is a modern marketplace platform designed specifically for college campuses, enabling students to buy and sell items within their campus community.
 
-**URL**: https://lovable.dev/projects/ae757ece-f44f-4b34-82ea-7f272a67b863
+## Features
 
-## How can I edit this code?
+### User Authentication
+- Secure user registration and login
+- Profile management with profile pictures
+- JWT-based authentication
 
-There are several ways of editing your application.
+### Product Management
+- Create, read, update, and delete product listings
+- Product categories and search functionality
+- Image upload for product listings
+- Price negotiation system
 
-**Use Lovable**
+### Real-time Chat System
+- Instant messaging between buyers and sellers
+- Chat history preservation
+- Real-time message updates
+- Unread message indicators
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/ae757ece-f44f-4b34-82ea-7f272a67b863) and start prompting.
+### User Interface
+- Modern, responsive design using Tailwind CSS
+- Dark mode support
+- Mobile-friendly interface
+- Intuitive navigation
 
-Changes made via Lovable will be committed automatically to this repo.
+## Tech Stack
 
-**Use your preferred IDE**
+### Frontend
+- React with TypeScript
+- Vite for build tooling
+- Tailwind CSS for styling
+- shadcn/ui for UI components
+- Socket.IO for real-time chat
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Backend
+- Node.js with Express
+- MongoDB for database
+- JWT for authentication
+- Socket.IO for real-time features
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Getting Started
 
-Follow these steps:
+### Prerequisites
+- Node.js (v16 or higher)
+- MongoDB
+- Git
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Installation
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+1. Clone the repository:
+```bash
+git clone https://github.com/SyedTanseer/CampusKart-Beta.git
+cd CampusKart-Beta
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+2. Install dependencies:
+```bash
+# Install frontend dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Install backend dependencies
+cd backend
+npm install
+```
+
+3. Set up environment variables:
+Create a `.env` file in the root directory with the following variables:
+```
+MONGODB_URI=your_mongodb_uri
+JWT_SECRET=your_jwt_secret
+PORT=5000
+```
+
+4. Start the development servers:
+```bash
+# Start frontend
+npm run dev
+
+# Start backend (in a separate terminal)
+cd backend
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Project Structure
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+CampusKart-Beta/
+├── src/                    # Frontend source code
+│   ├── components/         # React components
+│   ├── contexts/          # React contexts
+│   ├── pages/             # Page components
+│   ├── types/             # TypeScript types
+│   └── utils/             # Utility functions
+├── backend/               # Backend source code
+│   ├── src/              # Backend source files
+│   └── models/           # Database models
+├── public/               # Static assets
+└── scripts/             # Build and deployment scripts
+```
 
-**Use GitHub Codespaces**
+## Contributing
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## What technologies are used for this project?
+## License
 
-This project is built with:
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Contact
 
-## How can I deploy this project?
+Syed Tanseer - [GitHub](https://github.com/SyedTanseer)
 
-Simply open [Lovable](https://lovable.dev/projects/ae757ece-f44f-4b34-82ea-7f272a67b863) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes it is!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Project Link: [https://github.com/SyedTanseer/CampusKart-Beta](https://github.com/SyedTanseer/CampusKart-Beta)

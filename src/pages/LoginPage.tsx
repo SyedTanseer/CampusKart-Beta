@@ -14,18 +14,41 @@ const LoginPage = () => {
     username: '',
     password: '',
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Clear previous errors
+    setErrors({});
+    
+    // Basic validation
+    if (!formData.username.trim()) {
+      setErrors(prev => ({ ...prev, username: 'Username is required' }));
+      return;
+    }
+    if (!formData.password) {
+      setErrors(prev => ({ ...prev, password: 'Password is required' }));
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       await login(formData.username, formData.password);
       toast.success('Logged in successfully!');
       navigate('/');
-    } catch (error) {
-      toast.error('Failed to login. Please check your credentials.');
+    } catch (error: any) {
+      try {
+        const errorData = JSON.parse(error.message);
+        if (errorData.errors) {
+          setErrors(errorData.errors);
+        }
+        toast.error(errorData.message || 'Failed to login. Please check your credentials.');
+      } catch {
+        toast.error('Failed to login. Please check your credentials.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -42,9 +65,18 @@ const LoginPage = () => {
               id="username"
               type="text"
               value={formData.username}
-              onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, username: e.target.value }));
+                if (errors.username) {
+                  setErrors(prev => ({ ...prev, username: '' }));
+                }
+              }}
               required
+              className={errors.username ? 'border-red-500' : ''}
             />
+            {errors.username && (
+              <p className="text-sm text-red-500">{errors.username}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
@@ -52,9 +84,18 @@ const LoginPage = () => {
               id="password"
               type="password"
               value={formData.password}
-              onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, password: e.target.value }));
+                if (errors.password) {
+                  setErrors(prev => ({ ...prev, password: '' }));
+                }
+              }}
               required
+              className={errors.password ? 'border-red-500' : ''}
             />
+            {errors.password && (
+              <p className="text-sm text-red-500">{errors.password}</p>
+            )}
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Logging in...' : 'Login'}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, MapPin, Menu, X, Bell, MessageSquare, Heart, User, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,13 +15,19 @@ import {
 } from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { LogOut } from 'lucide-react';
+import ChatList from '../chat/ChatList';
+import { searchProducts } from '@/lib/api';
 
 const Header = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [showChatList, setShowChatList] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -44,12 +50,50 @@ const Header = () => {
     navigate('/sell');
   };
 
+  const handleChatClick = () => {
+    if (!isAuthenticated) {
+      setIsLoginModalOpen(true);
+      return;
+    }
+    setShowChatList(true);
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    try {
+      setIsSearching(true);
+      const results = await searchProducts(searchQuery);
+      // Navigate to search results page or update state
+      navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    } catch (error) {
+      console.error('Error searching products:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
       .map((n) => n[0])
       .join('')
       .toUpperCase();
+  };
+
+  const handleLogoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (location.pathname === '/') {
+      window.location.reload();
+    } else {
+      navigate('/');
+    }
   };
 
   return (
@@ -69,7 +113,7 @@ const Header = () => {
                 {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </Button>
             )}
-            <Link to="/" className="flex items-center">
+            <Link to="/" onClick={handleLogoClick} className="flex items-center">
               <h1 className="text-2xl font-bold text-primary">CampusKart</h1>
             </Link>
           </div>
@@ -90,7 +134,19 @@ const Header = () => {
                   type="text" 
                   placeholder="Find Textbooks, Electronics, Dorm Supplies and more..." 
                   className="w-full pl-10 pr-4 py-2"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleKeyPress}
                 />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="absolute right-0 top-0 h-full"
+                  onClick={handleSearch}
+                  disabled={isSearching}
+                >
+                  <Search size={18} className="text-muted-foreground" />
+                </Button>
                 <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
               </div>
             </div>
@@ -109,14 +165,13 @@ const Header = () => {
                   <Plus size={16} className="mr-2" />
                   Sell
                 </Button>
-                <Button variant="ghost" size="icon">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={handleChatClick}
+                  className="relative"
+                >
                   <MessageSquare size={24} className="text-muted-foreground hover:text-foreground transition-colors" />
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <Bell size={24} className="text-muted-foreground hover:text-foreground transition-colors" />
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <Heart size={24} className="text-muted-foreground hover:text-foreground transition-colors" />
                 </Button>
                 {isAuthenticated ? (
                   <DropdownMenu>
@@ -129,7 +184,10 @@ const Header = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56" align="end" forceMount>
-                      <DropdownMenuItem className="flex items-center">
+                      <DropdownMenuItem 
+                        className="flex items-center cursor-pointer"
+                        onClick={() => navigate('/profile')}
+                      >
                         <User className="mr-2 h-4 w-4" />
                         <span>Profile</span>
                       </DropdownMenuItem>
@@ -165,7 +223,19 @@ const Header = () => {
                 type="text" 
                 placeholder="Find Textbooks, Electronics, Dorm Supplies and more..." 
                 className="w-full pl-10 pr-4 py-2"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={handleKeyPress}
               />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute right-0 top-0 h-full"
+                onClick={handleSearch}
+                disabled={isSearching}
+              >
+                <Search size={18} className="text-muted-foreground" />
+              </Button>
               <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
             </div>
           </div>
@@ -205,22 +275,13 @@ const Header = () => {
                   </button>
                 </li>
                 <li>
-                  <a href="#" className="flex items-center p-2 hover:bg-accent hover:text-accent-foreground rounded transition-colors">
+                  <button 
+                    onClick={handleChatClick}
+                    className="flex items-center p-2 hover:bg-accent hover:text-accent-foreground rounded transition-colors w-full"
+                  >
                     <MessageSquare size={20} className="mr-2" />
                     <span>Chat</span>
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="flex items-center p-2 hover:bg-accent hover:text-accent-foreground rounded transition-colors">
-                    <Bell size={20} className="mr-2" />
-                    <span>Notifications</span>
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="flex items-center p-2 hover:bg-accent hover:text-accent-foreground rounded transition-colors">
-                    <Heart size={20} className="mr-2" />
-                    <span>Favorites</span>
-                  </a>
+                  </button>
                 </li>
                 <li>
                   {isAuthenticated ? (
@@ -252,6 +313,9 @@ const Header = () => {
         isOpen={isLoginModalOpen} 
         onClose={() => setIsLoginModalOpen(false)} 
       />
+
+      {/* Chat List */}
+      <ChatList isOpen={showChatList} onOpenChange={setShowChatList} />
     </header>
   );
 };

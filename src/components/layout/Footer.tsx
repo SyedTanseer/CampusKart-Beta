@@ -1,31 +1,39 @@
 import React from 'react';
-import { Smartphone } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
     <footer className="bg-background border-t">
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* About & Help */}
           <div>
             <h3 className="text-lg font-semibold mb-4">About & Help</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">About MarketPlace</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Careers</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Contact Us</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Help</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Sitemap</a></li>
+              <li><Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">About MarketPlace</Link></li>
+              <li><Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact Us</Link></li>
             </ul>
           </div>
 
-          {/* MarketPlace Apps */}
+          {/* Legal */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Legal</h3>
+            <ul className="space-y-2">
+              <li><Link to="/legal/terms" className="text-muted-foreground hover:text-foreground transition-colors">Terms of Use</Link></li>
+              <li><Link to="/legal/privacy" className="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/legal/cookies" className="text-muted-foreground hover:text-foreground transition-colors">Cookie Policy</Link></li>
+              <li><Link to="/legal/accessibility" className="text-muted-foreground hover:text-foreground transition-colors">Accessibility</Link></li>
+            </ul>
+          </div>
+
+          {/* MarketPlace Apps - Commented out
           <div>
             <h3 className="text-lg font-semibold mb-4">MarketPlace Apps</h3>
             <div className="flex items-center mb-4">
               <Smartphone size={24} className="mr-2 text-muted-foreground" />
               <p className="text-muted-foreground">Get the app today</p>
             </div>
-            <div className="flex space-x-2 mb-6">
+            <div className="flex space-x-2">
               <a href="#" className="block w-32 border border-muted rounded p-2 hover:border-foreground transition-colors">
                 <img 
                   src="/placeholder.svg" 
@@ -42,28 +50,7 @@ const Footer = () => {
               </a>
             </div>
           </div>
-
-          {/* Legal */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Legal</h3>
-            <ul className="space-y-2">
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Terms of Use</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Cookie Policy</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Accessibility</a></li>
-            </ul>
-          </div>
-
-          {/* Social Media */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Follow Us</h3>
-            <ul className="space-y-2">
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Facebook</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Twitter</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Instagram</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground transition-colors">LinkedIn</a></li>
-            </ul>
-          </div>
+          */}
         </div>
 
         <div className="mt-8 pt-8 border-t text-center text-muted-foreground">

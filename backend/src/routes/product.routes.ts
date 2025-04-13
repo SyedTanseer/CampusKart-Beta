@@ -1,14 +1,16 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
-import Product from '../models/product.model';
-import { IProduct } from '../models/product.model';
+import Product from '../models/Product';
+import { authMiddleware } from '../middleware/auth';
 
 const router = express.Router();
 
 // Get all products
 router.get('/', async (req: express.Request, res: express.Response) => {
   try {
-    const products = await Product.findAll();
+    const products = await Product.find()
+      .populate('seller', 'name email phone profilePicture created_at')
+      .sort({ createdAt: -1 });
     res.json(products);
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -19,7 +21,9 @@ router.get('/', async (req: express.Request, res: express.Response) => {
 // Get product by ID
 router.get('/:id', async (req: express.Request, res: express.Response) => {
   try {
-    const product = await Product.findByPk(req.params.id);
+    const product = await Product.findById(req.params.id)
+      .populate('seller', 'name email phone profilePicture created_at');
+    
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
@@ -33,11 +37,13 @@ router.get('/:id', async (req: express.Request, res: express.Response) => {
 // Create product
 router.post(
   '/',
+  authMiddleware,
   [
     body('title').notEmpty().trim(),
     body('description').notEmpty().trim(),
     body('price').isFloat({ min: 0 }),
     body('category').notEmpty().trim(),
+    body('condition').isIn(['new', 'like new', 'good', 'fair', 'poor']),
   ],
   async (req: express.Request, res: express.Response) => {
     try {
@@ -46,7 +52,14 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const product = await Product.create(req.body);
+      const product = await Product.create({
+        ...req.body,
+        seller: req.user._id // Set the seller to the current authenticated user
+      });
+
+      // Populate the seller information before sending response
+      await product.populate('seller', 'name email phone profilePicture created_at');
+      
       res.status(201).json(product);
     } catch (error) {
       console.error('Error creating product:', error);
@@ -58,11 +71,13 @@ router.post(
 // Update product
 router.put(
   '/:id',
+  authMiddleware,
   [
     body('title').optional().trim(),
     body('description').optional().trim(),
     body('price').optional().isFloat({ min: 0 }),
     body('category').optional().trim(),
+    body('condition').optional().isIn(['new', 'like new', 'good', 'fair', 'poor']),
   ],
   async (req: express.Request, res: express.Response) => {
     try {
@@ -71,13 +86,23 @@ router.put(
         return res.status(400).json({ errors: errors.array() });
       }
 
-      const product = await Product.findByPk(req.params.id);
+      const product = await Product.findById(req.params.id);
       if (!product) {
         return res.status(404).json({ message: 'Product not found' });
       }
 
-      await product.update(req.body);
-      res.json(product);
+      // Check if the current user is the seller
+      if (product.seller.toString() !== req.user._id.toString()) {
+        return res.status(403).json({ message: 'Not authorized to update this product' });
+      }
+
+      const updatedProduct = await Product.findByIdAndUpdate(
+        req.params.id,
+        { $set: req.body },
+        { new: true }
+      ).populate('seller', 'name email phone profilePicture created_at');
+
+      res.json(updatedProduct);
     } catch (error) {
       console.error('Error updating product:', error);
       res.status(500).json({ message: 'Server error' });
@@ -86,14 +111,19 @@ router.put(
 );
 
 // Delete product
-router.delete('/:id', async (req: express.Request, res: express.Response) => {
+router.delete('/:id', authMiddleware, async (req: express.Request, res: express.Response) => {
   try {
-    const product = await Product.findByPk(req.params.id);
+    const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    await product.destroy();
+    // Check if the current user is the seller
+    if (product.seller.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this product' });
+    }
+
+    await product.deleteOne();
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     console.error('Error deleting product:', error);

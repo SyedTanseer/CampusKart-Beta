@@ -12,29 +12,28 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { ImagePlus, Loader2 } from 'lucide-react';
+import { ImagePlus, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 const categories = [
-  'Textbooks',
-  'Electronics',
-  'Furniture',
-  'Clothing',
-  'Sports',
-  'Other',
+  'textbooks',
+  'electronics',
+  'furniture',
+  'clothing',
+  'other',
 ];
 
 const conditions = [
   { value: 'new', label: 'New' },
-  { value: 'like_new', label: 'Like New' },
+  { value: 'like new', label: 'Like New' },
   { value: 'good', label: 'Good' },
   { value: 'fair', label: 'Fair' },
   { value: 'poor', label: 'Poor' },
 ];
 
 const SellPage = () => {
-  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -44,22 +43,52 @@ const SellPage = () => {
     condition: '',
     images: [] as File[],
   });
-
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
-  React.useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-    }
-  }, [isAuthenticated, navigate]);
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setFormData(prev => ({ ...prev, images: [...prev.images, ...files] }));
+    const files = e.target.files;
+    if (!files) return;
+
+    const MAX_FILE_SIZE = 300 * 1024; // 300KB in bytes
+    const validFiles: File[] = [];
+    const invalidFiles: string[] = [];
+
+    Array.from(files).forEach(file => {
+      if (file.size > MAX_FILE_SIZE) {
+        invalidFiles.push(file.name);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (invalidFiles.length > 0) {
+      toast.error(`The following images exceed 300KB limit: ${invalidFiles.join(', ')}`);
+    }
+
+    if (validFiles.length > 0) {
+      const newImages = [...formData.images, ...validFiles];
+      if (newImages.length > 3) {
+        toast.error('Maximum 3 images allowed');
+        return;
+      }
+      setFormData(prev => ({ ...prev, images: newImages }));
+      
+      // Create preview URLs for new images
+      const newUrls = validFiles.map(file => URL.createObjectURL(file));
+      setPreviewUrls(prev => [...prev, ...newUrls]);
+    }
+  };
+
+  // Function to remove an image
+  const removeImage = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
     
-    // Create preview URLs
-    const newPreviewUrls = files.map(file => URL.createObjectURL(file));
-    setPreviewUrls(prev => [...prev, ...newPreviewUrls]);
+    // Revoke the URL to prevent memory leaks
+    URL.revokeObjectURL(previewUrls[index]);
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -100,7 +129,12 @@ const SellPage = () => {
   };
 
   if (!isAuthenticated) {
-    return null;
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">Sell an Item</h1>
+        <p className="text-lg">Please log in to create a listing.</p>
+      </div>
+    );
   }
 
   return (
@@ -139,6 +173,8 @@ const SellPage = () => {
             onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
             placeholder="Enter price"
             required
+            min="0"
+            step="0.01"
           />
         </div>
 
@@ -152,9 +188,9 @@ const SellPage = () => {
               <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map(category => (
-                <SelectItem key={category} value={category.toLowerCase()}>
-                  {category}
+              {categories.map((category) => (
+                <SelectItem key={category} value={category}>
+                  {category.charAt(0).toUpperCase() + category.slice(1)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -171,7 +207,7 @@ const SellPage = () => {
               <SelectValue placeholder="Select condition" />
             </SelectTrigger>
             <SelectContent>
-              {conditions.map(condition => (
+              {conditions.map((condition) => (
                 <SelectItem key={condition.value} value={condition.value}>
                   {condition.label}
                 </SelectItem>
@@ -181,7 +217,7 @@ const SellPage = () => {
         </div>
 
         <div className="space-y-2">
-          <Label>Images</Label>
+          <Label>Images (Max 3, 300KB each)</Label>
           <div className="flex flex-wrap gap-4">
             {previewUrls.map((url, index) => (
               <div key={index} className="relative w-32 h-32">
@@ -190,21 +226,32 @@ const SellPage = () => {
                   alt={`Preview ${index + 1}`}
                   className="w-full h-full object-cover rounded-lg"
                 />
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                  onClick={() => removeImage(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
             ))}
-            <label className="flex items-center justify-center w-32 h-32 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary">
-              <div className="flex flex-col items-center">
-                <ImagePlus className="w-8 h-8 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Add Image</span>
-              </div>
-              <input
-                type="file"
-                className="hidden"
-                accept="image/*"
-                multiple
-                onChange={handleImageChange}
-              />
-            </label>
+            {formData.images.length < 3 && (
+              <label className="flex items-center justify-center w-32 h-32 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary">
+                <div className="flex flex-col items-center">
+                  <ImagePlus className="w-8 h-8 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Add Image</span>
+                </div>
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageChange}
+                />
+              </label>
+            )}
           </div>
         </div>
 

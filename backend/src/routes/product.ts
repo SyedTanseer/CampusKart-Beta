@@ -1,55 +1,35 @@
 import { Router } from 'express';
-import { Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
-import Product from '../models/Product';
-import { authenticateToken } from '../middleware/auth';
 import fs from 'fs';
+import Product from '../models/Product';
+import { IProduct } from '../types';
+import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
-// Configure multer for file upload
+// Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    const uploadDir = 'uploads';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
 
 const upload = multer({ storage });
 
-// Create a new product
-router.post('/', authenticateToken, upload.array('images', 5), async (req: Request, res: Response) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'User not authenticated' });
-    }
-
-    const { title, description, price, category } = req.body;
-    const images = (req.files as Express.Multer.File[]).map(file => file.path);
-
-    const product = await Product.create({
-      title,
-      description,
-      price,
-      category,
-      images,
-      userId: req.user.id,
-    });
-
-    res.status(201).json(product);
-  } catch (error) {
-    console.error('Error creating product:', error);
-    res.status(500).json({ message: 'Error creating product' });
-  }
-});
-
 // Get all products
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', async (req, res) => {
   try {
-    const products = await Product.findAll();
+    console.log('Fetching all products...');
+    const products = await Product.find();
+    console.log('Found products:', products);
     res.json(products);
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -57,10 +37,53 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// Get a single product
-router.get('/:id', async (req: Request, res: Response) => {
+// Search products
+router.get('/search', async (req, res) => {
   try {
-    const product = await Product.findByPk(req.params.id);
+    const { query } = req.query;
+    if (!query) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    // Create a case-insensitive search pattern
+    const searchRegex = new RegExp(query as string, 'i');
+    
+    // Search across multiple fields
+    const products = await Product.find({
+      $or: [
+        { title: searchRegex },
+        { description: searchRegex },
+        { name: searchRegex }
+      ]
+    })
+    .populate('seller', 'name email profile_picture')
+    .sort({ createdAt: -1 }); // Sort by newest first
+
+    console.log(`Found ${products.length} products matching search query: ${query}`);
+    res.json(products);
+  } catch (error) {
+    console.error('Error searching products:', error);
+    res.status(500).json({ message: 'Error searching products' });
+  }
+});
+
+// Get products by category
+router.get('/category/:category', async (req, res) => {
+  try {
+    console.log('Fetching products for category:', req.params.category);
+    const products = await Product.find({ category: req.params.category }).populate('seller', 'name email profile_picture');
+    console.log('Found products:', products);
+    res.json(products);
+  } catch (error) {
+    console.error('Error fetching products by category:', error);
+    res.status(500).json({ message: 'Error fetching products by category' });
+  }
+});
+
+// Get product by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id).populate('seller', 'name email profile_picture');
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
@@ -71,54 +94,124 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Update a product
-router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
+// Create new product
+router.post('/', authenticateToken, upload.array('images', 5), async (req, res) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const product = await Product.findByPk(req.params.id);
+    const { title, description, price, category, condition } = req.body;
+    const images = (req.files as Express.Multer.File[]).map(file => file.path);
+
+    const product = await Product.create({
+      title,
+      description,
+      price: parseFloat(price),
+      category,
+      condition,
+      images,
+      seller: req.user._id,
+    });
+
+    res.status(201).json(product);
+  } catch (error) {
+    console.error('Error creating product:', error);
+    res.status(500).json({ message: 'Error creating product' });
+  }
+});
+
+// Update product
+router.put('/:id', authenticateToken, upload.array('images', 5), async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    const { title, description, price, category, condition } = req.body;
+    const product = await Product.findById(req.params.id);
+
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    if (product.userId !== req.user.id) {
+    if (!product.seller.equals(req.user._id)) {
       return res.status(403).json({ message: 'Not authorized to update this product' });
     }
 
-    await product.update(req.body);
-    res.json(product);
+    // Delete old images if new ones are uploaded
+    if (req.files && (req.files as Express.Multer.File[]).length > 0) {
+      product.images.forEach((imagePath: string) => {
+        fs.unlinkSync(imagePath);
+      });
+    }
+
+    const updateData: Partial<IProduct> = {
+      title,
+      description,
+      price: parseFloat(price),
+      category,
+      condition,
+    };
+
+    if (req.files && (req.files as Express.Multer.File[]).length > 0) {
+      updateData.images = (req.files as Express.Multer.File[]).map(file => file.path);
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+
+    res.json(updatedProduct);
   } catch (error) {
     console.error('Error updating product:', error);
     res.status(500).json({ message: 'Error updating product' });
   }
 });
 
-// Delete a product
-router.delete('/:id', authenticateToken, async (req: Request, res: Response) => {
+// Delete product
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const product = await Product.findByPk(req.params.id);
+    const product = await Product.findById(req.params.id);
+
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    if (product.userId !== req.user.id) {
+    // Allow admin and developer users to delete any product
+    const isAdminOrDeveloper = req.user.user_type === 'admin' || req.user.user_type === 'developer';
+    if (!isAdminOrDeveloper && !product.seller.equals(req.user._id)) {
       return res.status(403).json({ message: 'Not authorized to delete this product' });
     }
 
-    // Delete associated images
-    product.images.forEach(imagePath => {
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-    });
+    // Delete product images - handle errors gracefully
+    if (product.images && product.images.length > 0) {
+      product.images.forEach((imagePath: string) => {
+        try {
+          // Convert relative path to absolute path
+          const absolutePath = path.resolve(imagePath);
+          
+          // Check if the file exists before trying to delete it
+          if (fs.existsSync(absolutePath)) {
+            fs.unlinkSync(absolutePath);
+            console.log(`Deleted image: ${absolutePath}`);
+          } else {
+            console.log(`Image not found: ${absolutePath}`);
+          }
+        } catch (err) {
+          console.error(`Error deleting image ${imagePath}:`, err);
+          // Continue with other images even if one fails
+        }
+      });
+    }
 
-    await product.destroy();
+    await Product.findByIdAndDelete(req.params.id);
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     console.error('Error deleting product:', error);

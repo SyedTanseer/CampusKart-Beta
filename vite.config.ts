@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
+import path from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -9,10 +10,16 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3001,
+    port: 3000,
     strictPort: true,
     hmr: {
       overlay: false
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
     }
   },
   build: {
@@ -28,12 +35,9 @@ export default defineConfig({
     }
   },
   resolve: {
-    alias: [
-      {
-        find: '@',
-        replacement: resolve(__dirname, 'src')
-      }
-    ]
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
   },
   optimizeDeps: {
     include: ['react', 'react-dom', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu']
