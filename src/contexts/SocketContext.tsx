@@ -19,6 +19,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (user) {
       console.log('Initializing socket connection...');
       const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      console.log('Using backend URL:', baseUrl);
+      
       const newSocket = io(baseUrl, {
         path: '/socket.io',
         transports: ['websocket', 'polling'],

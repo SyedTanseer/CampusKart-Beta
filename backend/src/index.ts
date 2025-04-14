@@ -19,7 +19,9 @@ const httpServer = createServer(app as any);
 
 // CORS configuration
 const corsOptions = {
-  origin: 'http://localhost:3000',
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://campuskart-beta.vercel.app', 'https://campuskart.vercel.app', 'http://localhost:3000'] 
+    : 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
