@@ -9,9 +9,9 @@
   "scripts": {
     "start": "node dist/index.js",
     "dev": "node --max-old-space-size=8192 --optimize-for-size --max-semi-space-size=1024 node_modules/nodemon/bin/nodemon.js",
-    "build": "bash ./build.sh",
+    "build": "echo 'Installing type definitions...' && npm install --save @types/express@latest @types/multer@latest @types/jsonwebtoken@latest @types/bcryptjs@latest && echo 'Compiling TypeScript...' && tsc && echo 'Build completed successfully!'",
     "compile": "tsc",
-    "postinstall": "npm install --save-dev @types/express @types/multer @types/jsonwebtoken @types/bcryptjs",
+    "postinstall": "npm install --save @types/express @types/multer @types/jsonwebtoken @types/bcryptjs || echo 'Warning: Failed to install type definitions, but continuing anyway'",
     "seed": "ts-node src/seed.ts",
     "check-db": "ts-node src/check-db.ts",
     "test": "jest",
@@ -22,6 +22,12 @@
   "license": "ISC",
   "dependencies": {
     "@types/bcrypt": "^5.0.2",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/morgan": "^1.9.9",
+    "@types/multer": "^1.4.12",
     "axios": "^1.8.4",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
@@ -39,13 +45,7 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
     "@types/jest": "^29.5.6",
-    "@types/jsonwebtoken": "^9.0.9",
-    "@types/morgan": "^1.9.9",
-    "@types/multer": "^1.4.12",
     "@types/node": "^20.17.30",
     "jest": "^29.7.0",
     "nodemon": "^3.0.1",

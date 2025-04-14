@@ -14,8 +14,17 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "typeRoots": ["./node_modules/@types", "./src/types"]
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "declaration": true,
+    "declarationDir": "./dist/types"
   },
   "include": ["src/**/*", "src/types/*.d.ts"],
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "exclude": ["node_modules", "**/*.test.ts"],
+  "files": [
+    "src/types/express.d.ts",
+    "src/types/multer.d.ts",
+    "src/types/jsonwebtoken.d.ts",
+    "src/types/bcryptjs.d.ts",
+    "src/types/bcrypt.d.ts"
+  ]
 } 
