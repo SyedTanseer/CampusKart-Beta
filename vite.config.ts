@@ -22,6 +22,11 @@ export default defineConfig({
       },
     }
   },
+  preview: {
+    port: process.env.PORT ? parseInt(process.env.PORT) : 5173,
+    host: true,
+    allowedHosts: ['campuskart-beta.onrender.com']
+  },
   build: {
     sourcemap: true,
     chunkSizeWarningLimit: 1000,
