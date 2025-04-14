@@ -1,5 +1,5 @@
 import express = require('express');
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RouterType } from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
@@ -15,7 +15,7 @@ import { connectDB } from './config/database';
 dotenv.config();
 
 const app = express();
-const httpServer = createServer(app);
+const httpServer = createServer(app as any);
 
 // CORS configuration
 const corsOptions = {
