@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, RouterType } from 'express';
 import { login, register, updateProfile } from '../controllers/user.controller';
 import { authMiddleware } from '../middleware/auth';
 import multer, { FileFilterCallback } from 'multer';
@@ -21,16 +21,15 @@ const upload = multer({
     fileSize: 5 * 1024 * 1024 // 5MB limit
   },
   fileFilter: (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
-    if (allowedTypes.includes(file.mimetype)) {
+    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png' || file.mimetype === 'image/jpg') {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG and JPG are allowed.'));
+      cb(new Error('Invalid file type. Only JPEG, PNG and JPG are allowed.'), false);
     }
   }
 });
 
-const router = Router();
+const router: RouterType = Router();
 
 // Auth routes
 router.post('/register', register);

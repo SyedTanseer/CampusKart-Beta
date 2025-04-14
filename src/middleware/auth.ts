@@ -4,24 +4,18 @@ import { Types } from 'mongoose';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-// Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        _id: Types.ObjectId;
-        id: Types.ObjectId;
-        email: string;
-        name: string;
-        user_type?: 'admin' | 'developer' | 'user';
-      };
-    }
-  }
+// Define UserType here to avoid conflicts with the global namespace
+interface UserType {
+  _id: Types.ObjectId;
+  id: Types.ObjectId;
+  email: string;
+  name: string;
+  user_type?: 'admin' | 'developer' | 'user';
 }
 
 // Renamed from authenticateToken to authMiddleware for consistency with imports
 export const authMiddleware = async (
-  req: Request,
+  req: Request & { user?: UserType },
   res: Response,
   next: NextFunction
 ) => {
