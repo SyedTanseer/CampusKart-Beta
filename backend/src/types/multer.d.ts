@@ -12,6 +12,7 @@ declare module 'multer' {
       filename: string;
       path: string;
       buffer: Buffer;
+      stream?: any;
     }
 
     interface FileFilterCallback {
@@ -53,6 +54,19 @@ declare module 'multer' {
     none(): (req: Request, res: Response, next: NextFunction) => void;
   }
 
+  const multer: Multer & { default?: Multer };
+  export = multer;
+  
   export default function multer(options?: multer.Options): Multer;
   export interface FileFilterCallback extends multer.FileFilterCallback {}
+}
+
+declare global {
+  namespace Express {
+    namespace Multer {
+      interface File extends multer.File {
+        stream: any;
+      }
+    }
+  }
 } 

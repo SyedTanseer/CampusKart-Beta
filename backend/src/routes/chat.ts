@@ -1,8 +1,8 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, RouterType } from 'express';
 import Chat from '../models/Chat';
 import { authenticateToken } from '../middleware/auth';
 
-const router = Router();
+const router: RouterType = Router();
 
 // Get or create chat for a product
 router.post('/product/:productId', authenticateToken, async (req: Request, res: Response) => {

@@ -1,9 +1,9 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, RouterType } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
 
-const router = Router();
+const router: RouterType = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 // Register route

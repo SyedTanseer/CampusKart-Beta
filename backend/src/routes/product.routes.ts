@@ -1,9 +1,10 @@
-import express from 'express';
+import express = require('express');
+import { Request, Response, RouterType } from 'express';
 import { body, validationResult } from 'express-validator';
 import Product from '../models/Product';
 import { authMiddleware } from '../middleware/auth';
 
-const router = express.Router();
+const router: RouterType = express.Router();
 
 // Get all products
 router.get('/', async (req: express.Request, res: express.Response) => {
@@ -19,7 +20,7 @@ router.get('/', async (req: express.Request, res: express.Response) => {
 });
 
 // Get product by ID
-router.get('/:id', async (req: express.Request, res: express.Response) => {
+router.get('/:id', async (req: Request, res: Response) => {
   try {
     const product = await Product.findById(req.params.id)
       .populate('seller', 'name email phone profilePicture created_at');
@@ -45,7 +46,7 @@ router.post(
     body('category').notEmpty().trim(),
     body('condition').isIn(['new', 'like new', 'good', 'fair', 'poor']),
   ],
-  async (req: express.Request, res: express.Response) => {
+  async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -84,7 +85,7 @@ router.put(
     body('category').optional().trim(),
     body('condition').optional().isIn(['new', 'like new', 'good', 'fair', 'poor']),
   ],
-  async (req: express.Request, res: express.Response) => {
+  async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -121,7 +122,7 @@ router.put(
 );
 
 // Delete product
-router.delete('/:id', authMiddleware, async (req: express.Request, res: express.Response) => {
+router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     // Check if user is authenticated
     if (!req.user || !req.user._id) {

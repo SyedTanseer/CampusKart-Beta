@@ -1,9 +1,9 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, RouterType } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
 
-const router = Router();
+const router: RouterType = Router();
 
 // Register a new user
 router.post('/register', async (req: Request, res: Response) => {

@@ -1,4 +1,5 @@
-import express, { Request, Response } from 'express';
+import express = require('express');
+import { Request, Response, RouterType } from 'express';
 import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -6,7 +7,7 @@ import Product from '../models/Product';
 import { IProduct } from '../types';
 import { authenticateToken } from '../middleware/auth';
 
-const router = express.Router();
+const router: RouterType = express.Router();
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -33,7 +34,7 @@ const upload = multer({
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed'));
+      cb(new Error('Only image files are allowed'), false);
     }
   }
 });

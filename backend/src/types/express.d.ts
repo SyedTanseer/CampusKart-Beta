@@ -1,43 +1,44 @@
+// This file extends Express types
+import { RequestHandler } from 'express-serve-static-core';
+
 declare module 'express' {
-  import { EventEmitter } from 'events';
-  import * as http from 'http';
-  import * as net from 'net';
-
-  export interface Request extends http.IncomingMessage {
-    body: any;
-    params: any;
-    query: any;
-    headers: any;
-    user?: any;
+  interface Application {
+    use: any;
+    get: any;
+    post: any;
+    put: any;
+    delete: any;
+    listen: any;
   }
 
-  export interface Response extends http.ServerResponse {
-    status(code: number): Response;
-    send(body: any): Response;
-    json(body: any): Response;
+  interface Express {
+    (): Application;
+    json(): any;
+    urlencoded(options: { extended: boolean }): any;
+    static(root: string, options?: any): any;
+    Router(): any;
   }
 
-  export interface NextFunction {
-    (err?: any): void;
+  const express: Express;
+  export = express;
+}
+
+// Declare Express global namespace
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+      file?: any;
+      files?: any;
+    }
+
+    interface Response {
+      status(code: number): Response;
+      send(body: any): Response;
+      json(body: any): Response;
+    }
   }
+}
 
-  export interface RequestHandler {
-    (req: Request, res: Response, next: NextFunction): any;
-  }
-
-  export interface Router {
-    get(path: string, ...handlers: RequestHandler[]): Router;
-    post(path: string, ...handlers: RequestHandler[]): Router;
-    put(path: string, ...handlers: RequestHandler[]): Router;
-    delete(path: string, ...handlers: RequestHandler[]): Router;
-    use(...handlers: RequestHandler[]): Router;
-    use(path: string, ...handlers: RequestHandler[]): Router;
-  }
-
-  export function Router(): Router;
-  export function json(): RequestHandler;
-  export function urlencoded(options: { extended: boolean }): RequestHandler;
-  export function static(root: string, options?: any): RequestHandler;
-
-  export default function createApplication(): any;
-} 
+// Make sure this file is treated as a module
+export {};
