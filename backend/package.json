@@ -2,16 +2,15 @@
   "name": "campuskart-backend",
   "version": "1.0.0",
   "description": "Backend for CampusKart - A college marketplace platform",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "engines": {
     "node": ">=16"
   },
   "scripts": {
     "start": "node dist/index.js",
     "dev": "node --max-old-space-size=8192 --optimize-for-size --max-semi-space-size=1024 node_modules/nodemon/bin/nodemon.js",
-    "build": "echo 'Installing type definitions...' && npm install --save @types/express@latest @types/multer@latest @types/jsonwebtoken@latest @types/bcryptjs@latest && echo 'Compiling TypeScript...' && tsc && echo 'Build completed successfully!'",
-    "compile": "tsc",
-    "postinstall": "npm install --save @types/express @types/multer @types/jsonwebtoken @types/bcryptjs || echo 'Warning: Failed to install type definitions, but continuing anyway'",
+    "build": "rimraf dist && tsc",
+    "postinstall": "npm run build",
     "seed": "ts-node src/seed.ts",
     "check-db": "ts-node src/check-db.ts",
     "test": "jest",
