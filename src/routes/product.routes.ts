@@ -52,6 +52,11 @@ router.post(
         return res.status(400).json({ errors: errors.array() });
       }
 
+      // Check if user is authenticated
+      if (!req.user || !req.user._id) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
       const product = await Product.create({
         ...req.body,
         seller: req.user._id // Set the seller to the current authenticated user
@@ -86,6 +91,11 @@ router.put(
         return res.status(400).json({ errors: errors.array() });
       }
 
+      // Check if user is authenticated
+      if (!req.user || !req.user._id) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+
       const product = await Product.findById(req.params.id);
       if (!product) {
         return res.status(404).json({ message: 'Product not found' });
@@ -113,6 +123,11 @@ router.put(
 // Delete product
 router.delete('/:id', authMiddleware, async (req: express.Request, res: express.Response) => {
   try {
+    // Check if user is authenticated
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
     const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
