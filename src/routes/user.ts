@@ -44,6 +44,9 @@ router.put('/profile', authenticateToken, upload.single('profile_picture'), asyn
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
+    console.log('Profile update request body:', req.body);
+    console.log('Profile picture file:', req.file);
+
     const { name, email, phone, bio } = req.body;
     const updateData: any = {
       name,
@@ -54,11 +57,21 @@ router.put('/profile', authenticateToken, upload.single('profile_picture'), asyn
 
     // If a new profile picture was uploaded, update the path
     if (req.file) {
+      console.log('New profile picture uploaded:', req.file.path);
+      
       // Delete old profile picture if it exists
       const user = await User.findById(req.user._id);
       if (user?.profile_picture) {
         try {
-          fs.unlinkSync(user.profile_picture);
+          const fullPath = path.resolve(user.profile_picture);
+          console.log('Attempting to delete old profile picture:', fullPath);
+          
+          if (fs.existsSync(fullPath)) {
+            fs.unlinkSync(fullPath);
+            console.log('Successfully deleted old profile picture');
+          } else {
+            console.log('Old profile picture file not found at path:', fullPath);
+          }
         } catch (err) {
           console.error('Error deleting old profile picture:', err);
         }
@@ -66,6 +79,8 @@ router.put('/profile', authenticateToken, upload.single('profile_picture'), asyn
       updateData.profile_picture = req.file.path;
     }
 
+    console.log('Updating user with data:', updateData);
+    
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
       updateData,
@@ -75,6 +90,12 @@ router.put('/profile', authenticateToken, upload.single('profile_picture'), asyn
     if (!updatedUser) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    console.log('User updated successfully:', {
+      id: updatedUser._id,
+      name: updatedUser.name,
+      profile_picture: updatedUser.profile_picture
+    });
 
     res.json(updatedUser);
   } catch (error) {

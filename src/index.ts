@@ -35,7 +35,7 @@ const io = new Server(httpServer, {
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/uploads/profiles', express.static('uploads/profiles'));
 
 // Routes

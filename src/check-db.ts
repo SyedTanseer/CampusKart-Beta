@@ -1,9 +1,18 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 
+// Load environment variables from .env file
 dotenv.config();
 
-const MONGODB_URI = 'mongodb+srv://tanseeracer:mV3De1UOMMwhl4kX@cluster0.favur.mongodb.net/test';
+// Get MongoDB URI from environment variables
+const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'test';
+
+// Verify that MONGODB_URI is defined
+if (!MONGODB_URI) {
+  console.error('MONGODB_URI is not defined in the environment variables');
+  process.exit(1);
+}
 
 mongoose.set('debug', true);
 
@@ -14,7 +23,7 @@ const checkDatabase = async () => {
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       connectTimeoutMS: 30000,
-      dbName: 'test'
+      dbName: MONGODB_DB_NAME
     });
     
     console.log('Connected to MongoDB');
