@@ -203,17 +203,8 @@ const ProductDetail: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/products/${product._id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete listing');
-      }
-
+      await api.delete(`/products/${product._id}`);
+      
       toast('Listing deleted successfully', {
         description: 'Your listing has been removed.',
         duration: 3000,
