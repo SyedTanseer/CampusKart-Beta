@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "description": "Backend for CampusKart - A college marketplace platform",
   "main": "src/index.ts",
+  "engines": {
+    "node": ">=16"
+  },
   "scripts": {
     "start": "node dist/index.js",
     "dev": "node --max-old-space-size=8192 --optimize-for-size --max-semi-space-size=1024 node_modules/nodemon/bin/nodemon.js",
-    "build": "tsc",
+    "build": "bash ./build.sh",
+    "compile": "tsc",
+    "postinstall": "npm install --save-dev @types/express @types/multer @types/jsonwebtoken @types/bcryptjs",
     "seed": "ts-node src/seed.ts",
     "check-db": "ts-node src/check-db.ts",
     "test": "jest",
