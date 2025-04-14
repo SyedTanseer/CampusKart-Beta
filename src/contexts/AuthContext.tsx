@@ -22,10 +22,15 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // Initialize user state from localStorage to avoid flash of unauthenticated state
+  const initialUserData = localStorage.getItem('user')
+    ? JSON.parse(localStorage.getItem('user') || '{}')
+    : null;
+    
+  const [user, setUser] = useState<User | null>(initialUserData);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
 
   // Check for existing session on mount
   useEffect(() => {
@@ -33,17 +38,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const token = localStorage.getItem('token');
         if (token) {
-          const response = await api.get('/auth/verify');
-          setUser(response.data.user);
-          setIsAuthenticated(true);
+          try {
+            const response = await api.get('/auth/verify');
+            console.log('Auth verification response:', response.data);
+            
+            // Ensure all fields are present
+            const userData = {
+              ...response.data.user,
+              phone: response.data.user.phone || '',
+              bio: response.data.user.bio || ''
+            };
+            
+            // Update local storage with latest user data
+            localStorage.setItem('user', JSON.stringify(userData));
+            
+            // Update state
+            setUser(userData);
+            setIsAuthenticated(true);
+          } catch (verifyError) {
+            console.error('Auth verification error:', verifyError);
+            
+            // Don't immediately clear user state - this allows the app to work offline
+            // or when the server is temporarily unavailable
+            if (verifyError.response?.status === 401) {
+              // Clear auth state only on unauthorized error
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              setUser(null);
+              setIsAuthenticated(false);
+            }
+          }
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
         }
       } catch (err) {
-        console.error('Auth verification error:', err);
-        // Clear auth state on verification failure
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setUser(null);
-        setIsAuthenticated(false);
+        console.error('Auth general error:', err);
       } finally {
         setIsLoading(false);
       }
@@ -59,12 +89,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await api.post('/auth/login', { username, password });
       const { user: userData, token } = response.data;
       
+      // Add console log to view the data
+      console.log('Login response user data:', userData);
+      
+      // Make sure all fields are included in the userData object
+      const userWithAllFields = {
+        ...userData,
+        phone: userData.phone || '',
+        bio: userData.bio || ''
+      };
+      
       // Store user data and token
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('user', JSON.stringify(userWithAllFields));
       
       // Update state
-      setUser(userData);
+      setUser(userWithAllFields);
       setIsAuthenticated(true);
       
       return response.data;

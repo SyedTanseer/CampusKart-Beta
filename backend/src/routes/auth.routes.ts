@@ -87,6 +87,7 @@ router.post('/register', async (req: Request, res: Response) => {
         name: user.name,
         phone: user.phone,
         profile_picture: user.profile_picture,
+        created_at: user.created_at,
       },
     });
   } catch (error: any) {
@@ -185,8 +186,11 @@ router.post('/login', async (req: Request, res: Response) => {
         username: user.username,
         email: user.email,
         name: user.name,
-        phone: user.phone,
-        profile_picture: user.profile_picture,
+        phone: user.phone || '',
+        bio: user.bio || '',
+        profile_picture: user.profile_picture || '',
+        user_type: user.user_type,
+        created_at: user.created_at,
       },
     });
   } catch (error: any) {
@@ -219,8 +223,11 @@ router.get('/me', async (req: Request, res: Response) => {
         username: user.username,
         email: user.email,
         name: user.name,
-        phone: user.phone,
-        profile_picture: user.profile_picture,
+        phone: user.phone || '',
+        bio: user.bio || '',
+        profile_picture: user.profile_picture || '',
+        user_type: user.user_type,
+        created_at: user.created_at,
       },
     });
   } catch (error: any) {

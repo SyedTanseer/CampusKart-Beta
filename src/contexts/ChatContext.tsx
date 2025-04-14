@@ -101,36 +101,75 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [user, getChats]);
 
   const startChat = async (productId: string, sellerId: string) => {
+    if (!user) {
+      throw new Error('User must be logged in to start a chat');
+    }
+
+    console.log('StartChat called with:', {
+      productId,
+      sellerId,
+      user
+    });
+
     try {
       setLoading(true);
       
+      // Get the user ID from all possible sources
+      const userId = user?.id || user?._id;
+      if (!userId) {
+        throw new Error('User ID not found');
+      }
+      
+      console.log('User IDs for chat:', {
+        userId,
+        sellerId
+      });
+      
       // Check if a chat already exists for this specific product
-      const existingChat = chats.find(chat => 
-        chat.product._id === productId && 
-        ((chat.seller._id === sellerId && chat.buyer._id === user?._id) ||
-         (chat.buyer._id === sellerId && chat.seller._id === user?._id))
-      );
+      const existingChat = chats.find(chat => {
+        // Safely access properties with null checks
+        if (!chat.product || !chat.seller || !chat.buyer) {
+          return false;
+        }
+        
+        const chatProductId = chat.product._id;
+        const chatSellerId = chat.seller._id || chat.seller.id;
+        const chatBuyerId = chat.buyer._id || chat.buyer.id;
+        
+        return chatProductId === productId && 
+          ((chatSellerId === sellerId && (chatBuyerId === userId)) ||
+           (chatBuyerId === sellerId && (chatSellerId === userId)));
+      });
 
       if (existingChat) {
+        console.log('Found existing chat:', existingChat);
         setCurrentChat(existingChat);
         joinChat(existingChat._id);
         return existingChat;
       }
 
       // If no existing chat for this product, create a new one
+      console.log('Creating new chat with payload:', { productId, sellerId });
+      
       const response = await api.post(`/chats/product/${productId}`, { 
         sellerId
       });
       
       const newChat = response.data;
+      console.log('New chat created:', newChat);
+      
       setCurrentChat(newChat);
       setChats(prev => [newChat, ...prev]);
       joinChat(newChat._id);
       setError(null);
       return newChat;
-    } catch (err) {
-      console.error('Error starting chat:', err);
-      setError('Failed to start chat');
+    } catch (err: any) {
+      console.error('Error starting chat details:', {
+        error: err,
+        message: err.message,
+        response: err.response?.data
+      });
+      setError(err.response?.data?.message || err.message || 'Failed to start chat');
       throw err;
     } finally {
       setLoading(false);

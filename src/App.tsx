@@ -31,6 +31,8 @@ import TermsOfUse from './pages/legal/TermsOfUse';
 import PrivacyPolicy from './pages/legal/PrivacyPolicy';
 import CookiePolicy from './pages/legal/CookiePolicy';
 import Accessibility from './pages/legal/Accessibility';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
 
 const queryClient = new QueryClient();
 
@@ -53,6 +55,8 @@ function App() {
                         <Route path="/profile" element={<ProfilePage />} />
                         <Route path="/product/:id" element={<ProductPage />} />
                         <Route path="/search" element={<SearchResults />} />
+                        <Route path="/about" element={<AboutPage />} />
+                        <Route path="/contact" element={<ContactPage />} />
                         <Route path="/category/textbooks" element={<TextbooksPage />} />
                         <Route path="/category/electronics" element={<ElectronicsPage />} />
                         <Route path="/category/dorm-supplies" element={<DormSuppliesPage />} />

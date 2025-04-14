@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { getImageUrl } from '@/lib/utils';
 
 const ProfilePage = () => {
-  const { user, updateUser } = useAuth();
+  const { user, isLoading: authLoading, isAuthenticated, updateUser } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,35 +18,48 @@ const ProfilePage = () => {
     email: '',
     phone: '',
     bio: '',
-    profile_picture: null as File | null,
+    profile_picture: null as File | null
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
+    // Only navigate away if authentication check is complete and user is not logged in
+    if (!authLoading && !isAuthenticated) {
       navigate('/login');
       return;
     }
 
-    setFormData({
-      name: user.name || '',
-      email: user.email || '',
-      phone: user.phone || '',
-      bio: user.bio || '',
-      profile_picture: null,
-    });
-    if (user.profile_picture) {
-      const isFullUrl = user.profile_picture.startsWith('http');
-      const isRelativePath = user.profile_picture.startsWith('uploads/');
-      if (isFullUrl) {
-        setPreviewUrl(user.profile_picture);
-      } else if (isRelativePath) {
-        setPreviewUrl(`http://localhost:5000/${user.profile_picture}`);
+    if (user) {
+      console.log("User data from context:", user);
+      console.log("User phone value:", user.phone, typeof user.phone);
+      console.log("User bio value:", user.bio, typeof user.bio);
+      
+      const localStorageUser = JSON.parse(localStorage.getItem('user') || '{}');
+      console.log("User data from localStorage:", localStorageUser);
+
+      // Initialize form data with user data
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        bio: user.bio || '',
+        profile_picture: null
+      });
+
+      // Handle profile picture
+      if (user.profile_picture) {
+        console.log("Profile picture path:", user.profile_picture);
+        
+        const imageUrl = getImageUrl(user.profile_picture);
+        console.log("Setting profile picture URL to:", imageUrl);
+        setPreviewUrl(imageUrl);
       } else {
-        setPreviewUrl(`http://localhost:5000/uploads/profiles/${user.profile_picture}`);
+        console.log("No profile picture found in user data");
+        setPreviewUrl(null);
       }
     }
-  }, [user, navigate]);
+  }, [user, navigate, authLoading, isAuthenticated]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -63,6 +77,7 @@ const ProfilePage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
     try {
       const formDataToSend = new FormData();
@@ -72,6 +87,19 @@ const ProfilePage = () => {
       formDataToSend.append('bio', formData.bio);
       if (formData.profile_picture) {
         formDataToSend.append('profile_picture', formData.profile_picture);
+      }
+
+      console.log('Sending profile update data:', {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        bio: formData.bio,
+        hasProfilePicture: !!formData.profile_picture
+      });
+
+      // Log the form data for debugging
+      for (let pair of formDataToSend.entries()) {
+        console.log(pair[0], pair[1]);
       }
 
       const response = await fetch('http://localhost:5000/api/users/profile', {
@@ -84,20 +112,53 @@ const ProfilePage = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Profile update failed:', errorData);
         throw new Error(errorData.message || 'Failed to update profile');
       }
 
-      const updatedUser = await response.json();
+      const responseData = await response.json();
+      console.log('Profile update response:', responseData);
+      
+      // Ensure user data is complete before updating
+      const updatedUser = {
+        ...responseData,
+        phone: responseData.phone || '',
+        bio: responseData.bio || ''
+      };
+      
+      // Update user in context
       updateUser(updatedUser);
-      toast.success('Profile updated successfully!');
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update profile. Please try again.');
+      toast('Profile updated successfully!');
+      
+      // If profile picture was updated, reload the preview
+      if (formData.profile_picture) {
+        if (responseData.profile_picture) {
+          const imageUrl = getImageUrl(responseData.profile_picture);
+          console.log('Setting new profile picture URL after upload:', imageUrl);
+          setPreviewUrl(imageUrl);
+        }
+      }
+    } catch (err) {
+      console.error('Profile update error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      toast.error(err instanceof Error ? err.message : 'Failed to update profile');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Show loading state while authentication is being checked
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading profile...</span>
+      </div>
+    );
+  }
+
+  // If not loading and no user is found, don't render anything
+  // (the useEffect will handle the navigation)
   if (!user) {
     return null;
   }
@@ -118,12 +179,10 @@ const ProfilePage = () => {
                     src={previewUrl} 
                     alt="Profile" 
                     className="w-full h-full object-cover"
-                  />
-                ) : user.profile_picture ? (
-                  <img
-                    src={`http://localhost:5000/${user.profile_picture}`}
-                    alt="Profile"
-                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                      console.error("Error loading image from:", previewUrl);
+                      e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Crect width='200' height='200' fill='%23cccccc'/%3E%3Cpath d='M100,50 C83.4315,50 70,63.4315 70,80 C70,96.5685 83.4315,110 100,110 C116.569,110 130,96.5685 130,80 C130,63.4315 116.569,50 100,50 Z M55,150 L55,150 L145,150 C145,129.543 124.457,110 100,110 C75.5425,110 55,129.543 55,150 Z' fill='%23ffffff'/%3E%3C/svg%3E";
+                    }}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">

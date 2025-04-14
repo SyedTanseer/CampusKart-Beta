@@ -1,26 +1,27 @@
 export interface User {
-  _id: string;
-  id?: string;
-  name: string;
+  id: string;
+  _id?: string;
+  username: string;
   email: string;
-  created_at: string;
+  name: string;
   phone?: string;
-  profile_picture?: string;
   bio?: string;
-  user_type?: 'normal' | 'admin' | 'developer';
+  profile_picture?: string;
+  user_type: 'buyer' | 'seller';
 }
 
 export interface Product {
   _id: string;
-  title: string;
+  name: string;
   description: string;
   price: number;
   category: string;
-  condition: 'new' | 'like new' | 'good' | 'fair' | 'poor';
+  condition: string;
   images: string[];
   seller: User;
-  created_at: string;
-  updated_at: string;
+  status: 'available' | 'sold' | 'pending';
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Message {
@@ -33,7 +34,7 @@ export interface Message {
 
 export interface Chat {
   _id: string;
-  product: Product;
+  product: Product | Partial<Product> | string;
   buyer: User;
   seller: User;
   messages: Message[];

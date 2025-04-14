@@ -51,7 +51,7 @@ const Accessibility = () => {
             accessibility barriers:
           </p>
           <ul className="list-disc pl-6 mt-2">
-            <li>Email: accessibility@campuskart.com</li>
+            <li>Email: <a href="mailto:campuskart.sup@gmail.com" className="text-primary hover:underline">campuskart.sup@gmail.com</a></li>
             <li>Phone: (555) 123-4567</li>
             <li>Postal address: [Your Address]</li>
           </ul>

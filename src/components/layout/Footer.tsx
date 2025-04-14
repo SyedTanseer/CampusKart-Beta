@@ -11,7 +11,7 @@ const Footer = () => {
             <h3 className="text-lg font-semibold mb-4">About & Help</h3>
             <ul className="space-y-2">
               <li><Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">About MarketPlace</Link></li>
-              <li><Link to="/contact" className="text-muted-foreground hover:text-foreground transition-colors">Contact Us</Link></li>
+              <li><a href="mailto:campuskart.sup@gmail.com" className="text-muted-foreground hover:text-foreground transition-colors">Email: campuskart.sup@gmail.com</a></li>
             </ul>
           </div>
 
@@ -53,8 +53,9 @@ const Footer = () => {
           */}
         </div>
 
-        <div className="mt-8 pt-8 border-t text-center text-muted-foreground">
+        <div className="mt-8 pt-8 border-t text-center text-muted-foreground relative">
           <p>© {new Date().getFullYear()} CampusKart. All rights reserved.</p>
+          <span className="absolute bottom-0 right-0 text-xs text-muted-foreground/60">ver 0.3</span>
         </div>
       </div>
     </footer>

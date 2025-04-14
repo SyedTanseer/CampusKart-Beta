@@ -42,7 +42,9 @@ router.post('/register', async (req, res) => {
         username: user.username,
         email: user.email,
         name: user.name,
-        phone: user.phone,
+        phone: user.phone || '',
+        bio: user.bio || '',
+        profile_picture: user.profile_picture || '',
         user_type: user.user_type
       },
       token,
@@ -83,6 +85,9 @@ router.post('/login', async (req, res) => {
         username: user.username,
         email: user.email,
         name: user.name,
+        phone: user.phone || '',
+        bio: user.bio || '',
+        profile_picture: user.profile_picture || '',
         user_type: user.user_type
       },
       token,
@@ -114,6 +119,9 @@ router.get('/verify', async (req, res) => {
         username: user.username,
         email: user.email,
         name: user.name,
+        phone: user.phone || '',
+        bio: user.bio || '',
+        profile_picture: user.profile_picture || '',
         user_type: user.user_type
       },
     });

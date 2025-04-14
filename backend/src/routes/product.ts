@@ -28,7 +28,7 @@ const upload = multer({ storage });
 router.get('/', async (req, res) => {
   try {
     console.log('Fetching all products...');
-    const products = await Product.find();
+    const products = await Product.find().populate('seller', 'name email phone profile_picture created_at');
     console.log('Found products:', products);
     res.json(products);
   } catch (error) {
@@ -56,7 +56,7 @@ router.get('/search', async (req, res) => {
         { name: searchRegex }
       ]
     })
-    .populate('seller', 'name email profile_picture')
+    .populate('seller', 'name email phone profile_picture')
     .sort({ createdAt: -1 }); // Sort by newest first
 
     console.log(`Found ${products.length} products matching search query: ${query}`);
@@ -71,7 +71,7 @@ router.get('/search', async (req, res) => {
 router.get('/category/:category', async (req, res) => {
   try {
     console.log('Fetching products for category:', req.params.category);
-    const products = await Product.find({ category: req.params.category }).populate('seller', 'name email profile_picture');
+    const products = await Product.find({ category: req.params.category }).populate('seller', 'name email phone profile_picture');
     console.log('Found products:', products);
     res.json(products);
   } catch (error) {
@@ -83,7 +83,7 @@ router.get('/category/:category', async (req, res) => {
 // Get product by ID
 router.get('/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate('seller', 'name email profile_picture');
+    const product = await Product.findById(req.params.id).populate('seller', 'name email phone profile_picture created_at');
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }

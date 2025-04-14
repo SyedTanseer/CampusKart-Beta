@@ -31,9 +31,14 @@ const getDefaultProductImage = (category: string): string => {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
   const { user } = useAuth();
-  const isAdminOrDeveloper = user?.user_type === 'admin' || user?.user_type === 'developer';
+  // Check if user is the seller of this product or not
+  const isUserSeller = user && product.seller && 
+    (user.id === product.seller._id || user._id === product.seller._id);
+  
   const imageUrl = product.images && product.images.length > 0 
-    ? `http://localhost:5000/${product.images[0]}` 
+    ? product.images[0].startsWith('http') 
+      ? product.images[0] 
+      : `http://localhost:5000/${product.images[0]}`
     : getDefaultProductImage(product.category);
 
   const handleRemove = async (e: React.MouseEvent) => {
@@ -72,7 +77,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
         <div className="aspect-square relative">
           <PlaceholderImage
             src={imageUrl}
-            alt={product.title}
+            alt={product.name}
             className="object-cover w-full h-full"
           />
           <Badge 
@@ -81,7 +86,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
           >
             {product.condition}
           </Badge>
-          {isAdminOrDeveloper && (
+          {isUserSeller && (
             <Button
               variant="destructive"
               size="icon"
@@ -93,7 +98,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
           )}
         </div>
         <CardHeader className="p-4">
-          <h3 className="font-semibold text-lg truncate">{product.title}</h3>
+          <h3 className="font-semibold text-lg truncate">{product.name}</h3>
           <p className="text-2xl font-bold text-primary">₹{product.price.toLocaleString('en-IN')}</p>
         </CardHeader>
         <CardContent className="p-4 pt-0">
@@ -104,7 +109,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
             Seller: {product.seller?.name || 'Unknown'}
           </span>
           <span className="text-sm text-muted-foreground">
-            {product.created_at ? new Date(product.created_at).toLocaleDateString() : 'N/A'}
+            Posted: {product.createdAt ? 
+              new Date(product.createdAt).toLocaleDateString() : 'N/A'}
           </span>
         </CardFooter>
       </Link>

@@ -25,11 +25,18 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
+    // Don't redirect to login on 401 errors during auth verification
+    const isVerifyRequest = error.config?.url?.includes('/auth/verify');
+    
+    if (error.response?.status === 401 && !isVerifyRequest) {
+      // Handle unauthorized access - only redirect if not a verification request
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      
+      // Only redirect if we're not already on the login page
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

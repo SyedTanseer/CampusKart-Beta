@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Heart, Share2, MapPin, Calendar, RefreshCw, Shield, Phone, MessageSquare, ArrowLeft, ArrowRight, Trash2, Check } from 'lucide-react';
+import { Heart, Share2, MapPin, Calendar, RefreshCw, Shield, Phone, MessageSquare, ArrowLeft, ArrowRight, Trash2, Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Product, User, Message, Chat } from '@/types';
@@ -28,7 +28,6 @@ const ProductDetail: React.FC = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showPhone, setShowPhone] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -44,6 +43,9 @@ const ProductDetail: React.FC = () => {
     const fetchProduct = async () => {
       try {
         const data = await getProductById(id!);
+        console.log('Product data:', data);
+        console.log('Seller data:', data.seller);
+        console.log('Seller phone:', data.seller.phone);
         setProduct(data);
       } catch (err) {
         setError('Failed to load product details');
@@ -103,17 +105,60 @@ const ProductDetail: React.FC = () => {
   }, [messages.length]); // Only scroll when new messages are added
 
   const handleStartChat = async () => {
-    if (!user || !product) return;
+    if (!user || !product) {
+      toast.error('You must be logged in to chat with sellers');
+      return;
+    }
+
+    // Check if seller information is valid
+    if (!product.seller) {
+      toast.error('Seller information is not available');
+      return;
+    }
+
+    // Safely get seller ID
+    const sellerId = typeof product.seller === 'string' 
+      ? product.seller 
+      : product.seller._id || product.seller.id;
+
+    if (!sellerId) {
+      toast.error('Cannot identify seller. Please try again later.');
+      return;
+    }
+
+    // Don't allow users to chat with themselves
+    if (isUserSeller) {
+      toast.error('You cannot chat with yourself as the seller');
+      return;
+    }
 
     try {
       setLoadingChats(true);
-      const newChat = await startChat(product._id, product.seller._id);
+      
+      // Debug information
+      console.log('Starting chat with:', { 
+        productId: product._id, 
+        sellerId,
+        user: user
+      });
+      
+      const newChat = await startChat(product._id, sellerId);
+      console.log('Chat started successfully:', newChat);
       setCurrentChat(newChat);
       setMessages(newChat.messages || []);
       setShowChat(true);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting chat:', error);
-      toast.error('Failed to start chat');
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to start chat';
+      toast.error(errorMessage);
+      
+      // Detailed error logging
+      if (error?.response) {
+        console.error('API Response Error:', {
+          status: error.response.status,
+          data: error.response.data
+        });
+      }
     } finally {
       setLoadingChats(false);
     }
@@ -124,7 +169,7 @@ const ProductDetail: React.FC = () => {
 
     try {
       const updatedChat = await sendMessage(currentChat._id, message.trim());
-      setMessages(updatedChat.messages);
+      setMessages(prev => [...prev, ...updatedChat.messages.slice(-1)]);
       setMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
@@ -133,7 +178,8 @@ const ProductDetail: React.FC = () => {
   };
 
   useEffect(() => {
-    if (showChat && currentChat) {
+    if (showChat && currentChat && (!messages.length || messages[0]?.sender._id !== currentChat.messages[0]?.sender._id)) {
+      // Only reset messages if we're switching to a different chat or if there are no messages loaded
       setMessages(currentChat.messages || []);
     }
   }, [showChat, currentChat?._id]); // Only depend on chat ID, not the entire chat object
@@ -200,6 +246,22 @@ const ProductDetail: React.FC = () => {
     }
   };
 
+  const getImageUrl = (imagePath: string) => {
+    if (!imagePath) return '/placeholder.svg';
+    
+    // If it's already a full URL (starts with http or https), return as is
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    
+    // Convert Windows-style backslashes to forward slashes
+    const normalizedPath = imagePath.replace(/\\/g, '/');
+    
+    // For local paths, ensure they start with a slash
+    const finalPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+    return `http://localhost:5000${finalPath}`;
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
   if (!product) return <div>Product not found</div>;
@@ -217,10 +279,8 @@ const ProductDetail: React.FC = () => {
           <div className="bg-card rounded-lg overflow-hidden shadow-md mb-6">
             <div className="relative">
               <img 
-                src={product.images && product.images.length > 0 
-                  ? `http://localhost:5000/${product.images[currentImageIndex]}` 
-                  : "/placeholder.svg"} 
-                alt={product.title} 
+                src={getImageUrl(product.images[currentImageIndex])} 
+                alt={product.name} 
                 className="w-full h-96 object-contain transition-transform duration-700 hover:scale-105" 
               />
               {product.images && product.images.length > 1 && (
@@ -245,8 +305,8 @@ const ProductDetail: React.FC = () => {
                 {product.images.map((image, index) => (
                   <img
                     key={index}
-                    src={`http://localhost:5000/${image}`}
-                    alt={`${product.title} - Image ${index + 1}`}
+                    src={getImageUrl(image)}
+                    alt={`${product.name} - Image ${index + 1}`}
                     className={`w-20 h-20 object-cover rounded-lg cursor-pointer transition-all duration-300 ${
                       index === currentImageIndex 
                         ? 'ring-2 ring-primary scale-105' 
@@ -260,10 +320,10 @@ const ProductDetail: React.FC = () => {
           </div>
           
           <div className="bg-card rounded-lg shadow-md p-6 mb-6">
-            <h1 className="text-2xl font-bold text-foreground mb-4">{product.title}</h1>
+            <h1 className="text-2xl font-bold text-foreground mb-4">{product.name}</h1>
             <div className="flex items-center text-muted-foreground mb-6">
               <Calendar size={16} className="mr-1 transition-transform hover:scale-110" />
-              <span>Posted: {new Date(product.created_at).toLocaleDateString()}</span>
+              <span>Posted: {new Date(product.createdAt).toLocaleDateString()}</span>
             </div>
             
             <div className="text-3xl font-bold text-primary mb-8">
@@ -274,16 +334,6 @@ const ProductDetail: React.FC = () => {
             <p className="text-muted-foreground mb-6">{product.description}</p>
             
             <div className="flex gap-4">
-              <Button 
-                variant="outline" 
-                className="flex items-center transition-all duration-200 hover:bg-accent group"
-              >
-                <Heart 
-                  size={18} 
-                  className="mr-2 text-muted-foreground group-hover:text-destructive transition-all duration-300 group-hover:scale-110" 
-                />
-                Save
-              </Button>
               <Button 
                 variant="outline" 
                 className="flex items-center transition-all duration-200 hover:bg-accent group"
@@ -354,23 +404,49 @@ const ProductDetail: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">{product.seller.name || 'Anonymous Seller'}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Member since {product.seller.created_at ? new Date(product.seller.created_at).toLocaleDateString() : 'Unknown'}
-                    </p>
+                    <p className="text-sm text-muted-foreground">Verified Seller</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  {product.seller.phone && (
-                    <Button
-                      onClick={() => setShowPhone(!showPhone)}
-                      variant="outline"
-                      className="w-full flex items-center justify-center gap-2 transition-all duration-200 hover:bg-accent"
-                    >
-                      <Phone size={18} className="text-muted-foreground" />
-                      {showPhone ? product.seller.phone : 'Show Phone Number'}
-                    </Button>
-                  )}
+                  {/* Display phone number with improved error handling */}
+                  <div className="flex items-center gap-2 py-2 px-3 bg-muted rounded-md">
+                    <Phone size={18} className="text-primary" />
+                    <div className="flex-1">
+                      <span className="text-sm text-muted-foreground block">Phone Number:</span>
+                      {typeof product.seller === 'object' ? (
+                        product.seller.phone ? (
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{product.seller.phone}</span>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await navigator.clipboard.writeText(product.seller.phone);
+                                  toast('Phone number copied!', {
+                                    description: 'The phone number has been copied to your clipboard.',
+                                    duration: 2000,
+                                  });
+                                } catch (err) {
+                                  toast('Failed to copy phone number', {
+                                    description: 'Please try again.',
+                                    duration: 2000,
+                                  });
+                                }
+                              }}
+                              className="p-1 rounded-full hover:bg-accent transition-colors duration-200"
+                              title="Copy phone number"
+                            >
+                              <Copy size={14} className="text-muted-foreground hover:text-primary" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground italic">Not provided by seller</span>
+                        )
+                      ) : (
+                        <span className="text-muted-foreground italic">Loading seller details...</span>
+                      )}
+                    </div>
+                  </div>
 
                   {/* Only show chat button if user is not the seller */}
                   {user && !isUserSeller && (
@@ -415,23 +491,6 @@ const ProductDetail: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Phone Number Dialog */}
-      <Dialog open={showPhone} onOpenChange={setShowPhone}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Seller's Phone Number</DialogTitle>
-            <DialogDescription>
-              Contact the seller directly via phone
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-center text-2xl font-bold">
-              {product.seller?.phone || 'Phone number not available'}
-            </p>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Only render chat dialog if user is not the seller */}
       {user && !isUserSeller && (

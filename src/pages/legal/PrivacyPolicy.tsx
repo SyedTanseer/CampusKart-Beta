@@ -74,8 +74,8 @@ const PrivacyPolicy = () => {
           <p>
             If you have any questions about this Privacy Policy, please contact us at:
             <br />
-            <a href="mailto:privacy@campuskart.com" className="text-primary hover:underline">
-              privacy@campuskart.com
+            <a href="mailto:campuskart.sup@gmail.com" className="text-primary hover:underline">
+              campuskart.sup@gmail.com
             </a>
           </p>
         </section>
