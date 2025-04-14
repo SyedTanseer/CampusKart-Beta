@@ -1,31 +1,45 @@
-import { Router } from 'express';
-import multer from 'multer';
+import express, { Request, Response } from 'express';
+import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
 import fs from 'fs';
 import Product from '../models/Product';
 import { IProduct } from '../types';
 import { authenticateToken } from '../middleware/auth';
 
-const router = Router();
+const router = express.Router();
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'uploads';
+  destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
+    const uploadDir = 'uploads/products';
+    // Create the directory if it doesn't exist
     if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir);
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
+  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
 });
 
-const upload = multer({ storage });
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
 
 // Get all products
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
     console.log('Fetching all products...');
     const products = await Product.find().populate('seller', 'name email phone profile_picture created_at');
@@ -38,7 +52,7 @@ router.get('/', async (req, res) => {
 });
 
 // Search products
-router.get('/search', async (req, res) => {
+router.get('/search', async (req: Request, res: Response) => {
   try {
     const { query } = req.query;
     if (!query) {
@@ -68,7 +82,7 @@ router.get('/search', async (req, res) => {
 });
 
 // Get products by category
-router.get('/category/:category', async (req, res) => {
+router.get('/category/:category', async (req: Request, res: Response) => {
   try {
     console.log('Fetching products for category:', req.params.category);
     const products = await Product.find({ category: req.params.category }).populate('seller', 'name email phone profile_picture');
@@ -81,7 +95,7 @@ router.get('/category/:category', async (req, res) => {
 });
 
 // Get product by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: Request, res: Response) => {
   try {
     const product = await Product.findById(req.params.id).populate('seller', 'name email phone profile_picture created_at');
     if (!product) {
@@ -95,7 +109,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new product
-router.post('/', authenticateToken, upload.array('images', 5), async (req, res) => {
+router.post('/', authenticateToken, upload.array('images', 5), async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
@@ -122,7 +136,7 @@ router.post('/', authenticateToken, upload.array('images', 5), async (req, res) 
 });
 
 // Update product
-router.put('/:id', authenticateToken, upload.array('images', 5), async (req, res) => {
+router.put('/:id', authenticateToken, upload.array('images', 5), async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
@@ -172,7 +186,7 @@ router.put('/:id', authenticateToken, upload.array('images', 5), async (req, res
 });
 
 // Delete product
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });

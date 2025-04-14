@@ -19,7 +19,8 @@ declare global {
   }
 }
 
-export const authenticateToken = async (
+// Renamed from authenticateToken to authMiddleware for consistency with imports
+export const authMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -45,4 +46,7 @@ export const authenticateToken = async (
     console.error('Auth middleware error:', error);
     res.status(401).json({ message: 'Invalid token' });
   }
-}; 
+};
+
+// For backward compatibility
+export const authenticateToken = authMiddleware; 

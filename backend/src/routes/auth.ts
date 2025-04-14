@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
@@ -6,7 +6,7 @@ import User from '../models/User';
 const router = Router();
 
 // Register a new user
-router.post('/register', async (req, res) => {
+router.post('/register', async (req: Request, res: Response) => {
   try {
     const { username, email, password, name, phone } = req.body;
 
@@ -49,14 +49,14 @@ router.post('/register', async (req, res) => {
       },
       token,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error registering user:', error);
     res.status(500).json({ message: 'Error registering user' });
   }
 });
 
 // Login user
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 
@@ -92,14 +92,14 @@ router.post('/login', async (req, res) => {
       },
       token,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error logging in:', error);
     res.status(500).json({ message: 'Error logging in' });
   }
 });
 
 // Verify token
-router.get('/verify', async (req, res) => {
+router.get('/verify', async (req: Request, res: Response) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) {
@@ -125,7 +125,7 @@ router.get('/verify', async (req, res) => {
         user_type: user.user_type
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error verifying token:', error);
     res.status(401).json({ message: 'Invalid token' });
   }

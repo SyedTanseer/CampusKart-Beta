@@ -7,7 +7,8 @@ import { Types } from 'mongoose';
 
 dotenv.config();
 
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI ?? 'mongodb://localhost:27017/campuskart';
+const DB_NAME = process.env.MONGODB_DB_NAME ?? 'test';
 
 mongoose.set('debug', true); // Enable debug logging
 
@@ -258,7 +259,7 @@ const seedDatabase = async () => {
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       connectTimeoutMS: 30000,
-      dbName: 'test' // Explicitly set database name
+      dbName: DB_NAME // Use environment variable with fallback
     });
     
     console.log('Connected to MongoDB');
