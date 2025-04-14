@@ -21,22 +21,24 @@ export function getImageUrl(path: string | undefined | null): string | null {
     return normalizedPath;
   }
   
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  
   // Check for duplicate paths like "uploads/profiles/uploads/profiles/"
   if (normalizedPath.includes('uploads/profiles/uploads/profiles')) {
     const fixedPath = normalizedPath.replace('uploads/profiles/uploads/profiles', 'uploads/profiles');
-    return `http://localhost:5000/${fixedPath}`;
+    return `${baseUrl}/${fixedPath}`;
   }
   
   // Path already includes uploads directory (avoid duplications)
   if (normalizedPath.includes('uploads/')) {
-    return `http://localhost:5000/${normalizedPath}`;
+    return `${baseUrl}/${normalizedPath}`;
   }
   
   // Path starts with slash
   if (normalizedPath.startsWith('/')) {
-    return `http://localhost:5000${normalizedPath}`;
+    return `${baseUrl}${normalizedPath}`;
   }
   
   // Assume it's a profile picture filename
-  return `http://localhost:5000/uploads/profiles/${normalizedPath}`;
+  return `${baseUrl}/uploads/profiles/${normalizedPath}`;
 }

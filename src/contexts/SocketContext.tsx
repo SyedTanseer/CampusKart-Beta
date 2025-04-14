@@ -18,7 +18,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     if (user) {
       console.log('Initializing socket connection...');
-      const newSocket = io('http://localhost:5000', {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const newSocket = io(baseUrl, {
         path: '/socket.io',
         transports: ['websocket', 'polling'],
         withCredentials: true,

@@ -31,6 +31,8 @@ const getDefaultProductImage = (category: string): string => {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
   const { user } = useAuth();
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  
   // Check if user is the seller of this product or not
   const isUserSeller = user && product.seller && 
     (user.id === product.seller._id || user._id === product.seller._id);
@@ -38,7 +40,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
   const imageUrl = product.images && product.images.length > 0 
     ? product.images[0].startsWith('http') 
       ? product.images[0] 
-      : `http://localhost:5000/${product.images[0]}`
+      : `${baseUrl}/${product.images[0]}`
     : getDefaultProductImage(product.category);
 
   const handleRemove = async (e: React.MouseEvent) => {
@@ -50,7 +52,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/products/${product._id}`, {
+      const response = await fetch(`${baseUrl}/api/products/${product._id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,

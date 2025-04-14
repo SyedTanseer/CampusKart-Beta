@@ -254,12 +254,14 @@ const ProductDetail: React.FC = () => {
       return imagePath;
     }
     
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    
     // Convert Windows-style backslashes to forward slashes
     const normalizedPath = imagePath.replace(/\\/g, '/');
     
     // For local paths, ensure they start with a slash
     const finalPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
-    return `http://localhost:5000${finalPath}`;
+    return `${baseUrl}${finalPath}`;
   };
 
   if (loading) return <div>Loading...</div>;
