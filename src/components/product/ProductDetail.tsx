@@ -398,7 +398,7 @@ const ProductDetail: React.FC = () => {
                       src={product.seller.profile_picture 
                         ? (product.seller.profile_picture.startsWith('http') 
                             ? product.seller.profile_picture 
-                            : `http://localhost:5000/${product.seller.profile_picture}`)
+                            : getImageUrl(product.seller.profile_picture))
                         : "/placeholder.svg"} 
                       alt={product.seller.name || 'Seller'} 
                       className="w-full h-full rounded-full object-cover" 
