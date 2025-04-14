@@ -1,11 +1,11 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import Chat from '../models/Chat';
 import { authenticateToken } from '../middleware/auth';
 
 const router = Router();
 
 // Get or create chat for a product
-router.post('/product/:productId', authenticateToken, async (req, res) => {
+router.post('/product/:productId', authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
@@ -86,7 +86,7 @@ router.post('/product/:productId', authenticateToken, async (req, res) => {
 });
 
 // Get user's chats
-router.get('/user', authenticateToken, async (req, res) => {
+router.get('/user', authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
@@ -112,7 +112,7 @@ router.get('/user', authenticateToken, async (req, res) => {
 });
 
 // Send message
-router.post('/:chatId/message', authenticateToken, async (req, res) => {
+router.post('/:chatId/message', authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });

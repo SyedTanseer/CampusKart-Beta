@@ -116,7 +116,7 @@ router.post('/', authenticateToken, upload.array('images', 5), async (req: Reque
     }
 
     const { title, description, price, category, condition } = req.body;
-    const images = (req.files as Express.Multer.File[]).map(file => file.path);
+    const images = (req.files as any[]).map(file => file.path);
 
     const product = await Product.create({
       title,
@@ -154,9 +154,15 @@ router.put('/:id', authenticateToken, upload.array('images', 5), async (req: Req
     }
 
     // Delete old images if new ones are uploaded
-    if (req.files && (req.files as Express.Multer.File[]).length > 0) {
+    if (req.files && (req.files as any[]).length > 0) {
       product.images.forEach((imagePath: string) => {
-        fs.unlinkSync(imagePath);
+        try {
+          if (fs.existsSync(imagePath)) {
+            fs.unlinkSync(imagePath);
+          }
+        } catch (err) {
+          console.error(`Error deleting image ${imagePath}:`, err);
+        }
       });
     }
 
@@ -168,8 +174,8 @@ router.put('/:id', authenticateToken, upload.array('images', 5), async (req: Req
       condition,
     };
 
-    if (req.files && (req.files as Express.Multer.File[]).length > 0) {
-      updateData.images = (req.files as Express.Multer.File[]).map(file => file.path);
+    if (req.files && (req.files as any[]).length > 0) {
+      updateData.images = (req.files as any[]).map(file => file.path);
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(

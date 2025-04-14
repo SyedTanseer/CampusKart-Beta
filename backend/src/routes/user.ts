@@ -38,7 +38,7 @@ const upload = multer({
 });
 
 // Update user profile
-router.put('/profile', authenticateToken, upload.single('profile_picture'), async (req, res) => {
+router.put('/profile', authenticateToken, upload.single('profile_picture'), async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
