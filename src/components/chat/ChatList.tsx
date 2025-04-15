@@ -170,7 +170,7 @@ const ChatList: React.FC<ChatListProps> = ({ isOpen, onOpenChange }) => {
     const updatedChat: Chat = {
       ...selectedChat,
       messages: [...selectedChat.messages, tempMessage],
-      updated_at: new Date().toISOString()
+      updatedAt: new Date().toISOString()
     };
 
     // Update both selected chat and current chat
@@ -281,7 +281,7 @@ const ChatList: React.FC<ChatListProps> = ({ isOpen, onOpenChange }) => {
                 </p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-6 pt-4">
                 {chats.map((chat) => {
                   const otherParty = getOtherParty(chat);
                   const lastMessage = chat.messages[chat.messages.length - 1];
@@ -303,7 +303,7 @@ const ChatList: React.FC<ChatListProps> = ({ isOpen, onOpenChange }) => {
                               {otherParty?.name || 'Unknown User'}
                             </h4>
                             <span className="text-xs text-muted-foreground">
-                              {formatDate(chat.updated_at)}
+                              {formatDate(chat.updatedAt)}
                             </span>
                           </div>
                           <p className="text-xs text-primary font-medium truncate mb-1">
