@@ -14,7 +14,8 @@
     "seed": "ts-node src/seed.ts",
     "check-db": "ts-node src/check-db.ts",
     "test": "jest",
-    "migrate:phone": "ts-node src/migrations/addPhoneNumber.ts"
+    "migrate:phone": "ts-node src/migrations/addPhoneNumber.ts",
+    "test:cloudinary": "ts-node src/scripts/test-cloudinary.ts"
   },
   "keywords": [],
   "author": "",
