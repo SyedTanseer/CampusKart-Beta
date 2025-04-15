@@ -14,6 +14,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { ImagePlus, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { api } from '@/lib/api';
 
 const categories = [
   'textbooks',
@@ -106,17 +107,11 @@ const SellPage = () => {
         formDataToSend.append('images', image);
       });
 
-      const response = await fetch('http://localhost:5000/api/products', {
-        method: 'POST',
+      const response = await api.post('/products', formDataToSend, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'multipart/form-data',
         },
-        body: formDataToSend,
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to create listing');
-      }
 
       toast.success('Listing created successfully!');
       navigate('/');

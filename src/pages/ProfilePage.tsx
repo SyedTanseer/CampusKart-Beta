@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
-import { getImageUrl } from '@/lib/utils';
+import { getImageUrl, api } from '@/lib/api';
 
 const ProfilePage = () => {
   const { user, isLoading: authLoading, isAuthenticated, updateUser } = useAuth();
@@ -102,28 +102,19 @@ const ProfilePage = () => {
         console.log(pair[0], pair[1]);
       }
 
-      const response = await fetch('http://localhost:5000/api/users/profile', {
-        method: 'PUT',
+      const response = await api.put('/users/profile', formDataToSend, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'multipart/form-data',
         },
-        body: formDataToSend,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Profile update failed:', errorData);
-        throw new Error(errorData.message || 'Failed to update profile');
-      }
-
-      const responseData = await response.json();
-      console.log('Profile update response:', responseData);
+      console.log('Profile update response:', response.data);
       
       // Ensure user data is complete before updating
       const updatedUser = {
-        ...responseData,
-        phone: responseData.phone || '',
-        bio: responseData.bio || ''
+        ...response.data,
+        phone: response.data.phone || '',
+        bio: response.data.bio || ''
       };
       
       // Update user in context
@@ -132,8 +123,8 @@ const ProfilePage = () => {
       
       // If profile picture was updated, reload the preview
       if (formData.profile_picture) {
-        if (responseData.profile_picture) {
-          const imageUrl = getImageUrl(responseData.profile_picture);
+        if (response.data.profile_picture) {
+          const imageUrl = getImageUrl(response.data.profile_picture);
           console.log('Setting new profile picture URL after upload:', imageUrl);
           setPreviewUrl(imageUrl);
         }

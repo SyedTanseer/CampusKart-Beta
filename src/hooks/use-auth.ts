@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 
 interface User {
   id: number;
@@ -36,18 +37,8 @@ export function useAuth(): AuthContextType {
 
   const fetchUserData = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data');
-      }
-
-      const data = await response.json();
-      setUser(data.user);
+      const response = await api.get('/auth/me');
+      setUser(response.data.user);
     } catch (err) {
       console.error('Error fetching user data:', err);
       localStorage.removeItem('token');
@@ -62,22 +53,9 @@ export function useAuth(): AuthContextType {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
-
-      localStorage.setItem('token', data.token);
-      setUser(data.user);
+      const response = await api.post('/auth/login', { email, password });
+      localStorage.setItem('token', response.data.token);
+      setUser(response.data.user);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
       throw err;
@@ -97,22 +75,12 @@ export function useAuth(): AuthContextType {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('http://localhost:5000/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password, name, college, phone }),
+      const response = await api.post('/auth/register', { 
+        email, password, name, college, phone 
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
-      }
-
-      localStorage.setItem('token', data.token);
-      setUser(data.user);
+      
+      localStorage.setItem('token', response.data.token);
+      setUser(response.data.user);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
       throw err;

@@ -24,9 +24,21 @@ const httpServer = createServer(app as any);
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://campuskart-beta.vercel.app', 'https://campuskart.vercel.app', 'http://localhost:3000', 'https://campuskart-beta.onrender.com'] 
-    : 'http://localhost:3000',
+  origin: function(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    const allowedOrigins = process.env.NODE_ENV === 'production' 
+      ? ['https://campuskart-beta.vercel.app', 'https://campuskart.vercel.app', 'https://campuskart-beta.onrender.com']
+      : ['http://localhost:3000'];
+      
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      console.error(`Origin ${origin} not allowed by CORS`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
