@@ -11,11 +11,16 @@ import ensureDirectoriesExist from './utils/ensureDirectories';
 import authRoutes from './routes/auth';
 import productRoutes from './routes/product';
 import chatRoutes from './routes/chat';
-import userRoutes from './routes/user';
+import userRoutesStandard from './routes/user';
+import userRoutesCloudinary from './routes/user.cloudinary';
 import testRoutes from './routes/test';
 
 // Load environment variables
 dotenv.config();
+
+// Determine which user routes to use based on environment
+const userRoutes = process.env.NODE_ENV === 'production' ? userRoutesCloudinary : userRoutesStandard;
+console.log(`Using ${process.env.NODE_ENV === 'production' ? 'Cloudinary' : 'standard'} user routes`);
 
 // Create directories needed for file storage in development mode
 ensureDirectoriesExist();

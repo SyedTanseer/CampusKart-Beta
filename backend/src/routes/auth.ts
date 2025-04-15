@@ -10,10 +10,46 @@ router.post('/register', async (req: Request, res: Response) => {
   try {
     const { username, email, password, name, phone } = req.body;
 
+    // Basic validation
+    if (!username || !email || !password || !name || !phone) {
+      return res.status(400).json({ 
+        message: 'Missing required fields',
+        errors: {
+          ...(!username && { username: 'Username is required' }),
+          ...(!email && { email: 'Email is required' }),
+          ...(!password && { password: 'Password is required' }),
+          ...(!name && { name: 'Name is required' }),
+          ...(!phone && { phone: 'Phone number is required' })
+        }
+      });
+    }
+
+    // Validate phone number format
+    if (!/^\d{10}$/.test(phone)) {
+      return res.status(400).json({ 
+        message: 'Invalid phone number format',
+        errors: {
+          phone: 'Phone number must be exactly 10 digits'
+        }
+      });
+    }
+
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ 
+      $or: [
+        { username },
+        { email }
+      ]
+    });
+    
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({ 
+        message: 'User already exists',
+        errors: {
+          ...(existingUser.username === username && { username: 'Username already taken' }),
+          ...(existingUser.email === email && { email: 'Email already registered' })
+        }
+      });
     }
 
     // Hash password
@@ -51,7 +87,35 @@ router.post('/register', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error registering user:', error);
-    res.status(500).json({ message: 'Error registering user' });
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.keys(error.errors).reduce((acc: any, key: string) => {
+        acc[key] = error.errors[key].message;
+        return acc;
+      }, {});
+      
+      return res.status(400).json({
+        message: 'Validation error',
+        errors
+      });
+    }
+
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({
+        message: 'Duplicate field error',
+        errors: {
+          [field]: `${field} already exists`
+        }
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Error registering user',
+      error: error.message
+    });
   }
 });
 

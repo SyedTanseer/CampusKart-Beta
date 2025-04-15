@@ -23,7 +23,18 @@ router.post('/register', async (req: Request, res: Response) => {
           ...(!password && { password: 'Password is required' }),
           ...(!email && { email: 'Email is required' }),
           ...(!name && { name: 'Name is required' }),
-          ...(!phone && { phone: 'Phone is required' })
+          ...(!phone && { phone: 'Phone number is required' })
+        }
+      });
+    }
+
+    // Validate phone number format
+    if (!/^\d{10}$/.test(phone)) {
+      console.log('Invalid phone number format:', { phone });
+      return res.status(400).json({ 
+        message: 'Invalid phone number format',
+        errors: {
+          phone: 'Phone number must be exactly 10 digits'
         }
       });
     }

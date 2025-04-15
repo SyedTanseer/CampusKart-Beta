@@ -4,6 +4,8 @@ import cloudinary from '../config/cloudinary';
 import { profileUpload } from '../config/cloudinary';
 import multer from 'multer';
 import path from 'path';
+import User from '../models/User';
+import { authenticateToken } from '../middleware/auth';
 
 const router: RouterType = express.Router();
 
@@ -412,6 +414,135 @@ router.get('/test-preset-upload', (req: Request, res: Response) => {
   `;
   
   res.send(htmlForm);
+});
+
+// Test migration of profile pictures to Cloudinary
+router.post('/migrate-profile-pictures', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    // Only allow admins and developers to perform this operation
+    if (!req.user || (req.user.user_type !== 'admin' && req.user.user_type !== 'developer')) {
+      return res.status(403).json({ 
+        status: 'error', 
+        message: 'Only admins and developers can perform this operation' 
+      });
+    }
+
+    const { userId } = req.body;
+    
+    // If a specific user ID is provided, only migrate that user
+    let query = userId ? { _id: userId } : {};
+    
+    // Find users with profile pictures that aren't from Cloudinary
+    const users = await User.find({
+      ...query,
+      profile_picture: { $exists: true, $ne: null },
+      $expr: {
+        $not: {
+          $regexMatch: {
+            input: "$profile_picture",
+            regex: "cloudinary.com"
+          }
+        }
+      }
+    });
+
+    console.log(`Found ${users.length} users with non-Cloudinary profile pictures`);
+
+    // Track migration results
+    const results = {
+      total: users.length,
+      success: 0,
+      failed: 0,
+      skipped: 0,
+      users: [] as any[]
+    };
+
+    // Process each user
+    for (const user of users) {
+      try {
+        // Skip if no profile picture
+        if (!user.profile_picture) {
+          results.skipped++;
+          results.users.push({
+            userId: user._id,
+            status: 'skipped',
+            reason: 'No profile picture'
+          });
+          continue;
+        }
+
+        // Skip if already a Cloudinary URL
+        if (user.profile_picture.includes('cloudinary.com')) {
+          results.skipped++;
+          results.users.push({
+            userId: user._id,
+            status: 'skipped',
+            reason: 'Already a Cloudinary URL'
+          });
+          continue;
+        }
+
+        // Get the full URL to the profile picture
+        const baseUrl = process.env.NODE_ENV === 'production' 
+          ? 'https://campuskart-backend-qw5z.onrender.com'
+          : 'http://localhost:5000';
+        
+        // Normalize the path (replace Windows backslashes)
+        const normalizedPath = user.profile_picture.replace(/\\/g, '/');
+        
+        // Create the full URL
+        const fullPath = normalizedPath.startsWith('/') 
+          ? `${baseUrl}${normalizedPath}`
+          : `${baseUrl}/${normalizedPath}`;
+        
+        console.log(`Uploading from URL: ${fullPath} for user ${user._id}`);
+
+        // Upload to Cloudinary
+        const uploadResult = await cloudinary.uploader.upload(fullPath, {
+          folder: 'campuskart/profiles',
+          overwrite: true,
+          resource_type: 'image'
+        });
+
+        console.log(`Uploaded to Cloudinary: ${uploadResult.secure_url}`);
+
+        // Update the user with the new Cloudinary URL
+        await User.updateOne(
+          { _id: user._id },
+          { $set: { profile_picture: uploadResult.secure_url } }
+        );
+
+        results.success++;
+        results.users.push({
+          userId: user._id,
+          status: 'success',
+          oldUrl: user.profile_picture,
+          newUrl: uploadResult.secure_url
+        });
+      } catch (err) {
+        console.error(`Error migrating profile picture for user ${user._id}:`, err);
+        results.failed++;
+        results.users.push({
+          userId: user._id,
+          status: 'failed',
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+    }
+
+    res.json({
+      status: 'success',
+      message: 'Profile picture migration completed',
+      results
+    });
+  } catch (error) {
+    console.error('Migration error:', error);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Failed to migrate profile pictures',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
 });
 
 export default router; 
