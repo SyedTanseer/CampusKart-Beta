@@ -51,27 +51,39 @@ export const isCloudinaryUrl = (url: string) => {
 
 // Helper function to get the correct image URL
 export const getImageUrl = (imagePath: string) => {
-  if (!imagePath) return '/placeholder.svg';
+  if (!imagePath) {
+    console.log('No image path provided, using placeholder');
+    return '/placeholder.svg';
+  }
   
-  // If it's already a Cloudinary URL, return as is
+  console.log('Processing image path:', imagePath);
+  
+  // If it's already a Cloudinary URL, return as is (preferred)
   if (isCloudinaryUrl(imagePath)) {
+    console.log('Found Cloudinary URL, using directly:', imagePath);
     return imagePath;
   }
   
   // If it's another full URL (starts with http or https), return as is
   if (imagePath.startsWith('http')) {
+    console.log('Found HTTP URL, using directly:', imagePath);
     return imagePath;
   }
   
   // For local paths, ensure they start with the correct base URL
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  console.log('Using base URL:', baseUrl);
   
   // Convert Windows-style backslashes to forward slashes
   const normalizedPath = imagePath.replace(/\\/g, '/');
+  console.log('Normalized path:', normalizedPath);
   
   // For local paths, ensure they start with a slash
   const finalPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
-  return `${baseUrl}${finalPath}`;
+  const fullUrl = `${baseUrl}${finalPath}`;
+  
+  console.log('Final image URL:', fullUrl);
+  return fullUrl;
 };
 
 export const getProducts = async () => {

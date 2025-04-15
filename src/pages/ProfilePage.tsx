@@ -124,66 +124,67 @@ const ProfilePage = () => {
         }
       }
 
-      // Prepare the data to send to the API
-      let profileData: any = {
+      // Update profile information first (without the profile picture)
+      const profileData = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         bio: formData.bio,
       };
       
-      // If we uploaded directly to Cloudinary, include the URL
-      if (profilePictureUrl) {
-        profileData.profile_picture_url = profilePictureUrl;
-      }
-
-      let response;
+      // Update basic profile info
+      const profileResponse = await api.put('/users/profile', profileData);
+      console.log('Profile update response:', profileResponse.data);
       
-      if (isDirectUpload) {
-        // If using direct upload, send JSON data
-        console.log('Sending profile update with direct uploaded image URL:', profileData);
-        response = await api.put('/users/profile', profileData);
-      } else {
-        // Fall back to form data with file upload through the server
-        const formDataToSend = new FormData();
-        formDataToSend.append('name', formData.name);
-        formDataToSend.append('email', formData.email);
-        formDataToSend.append('phone', formData.phone);
-        formDataToSend.append('bio', formData.bio);
-        if (formData.profile_picture) {
-          formDataToSend.append('profile_picture', formData.profile_picture);
+      // Handle profile picture separately based on upload method
+      let pictureResponse = profileResponse;
+      
+      if (formData.profile_picture) {
+        if (isDirectUpload && profilePictureUrl) {
+          // If we successfully uploaded to Cloudinary directly, send the URL
+          pictureResponse = await api.put('/users/profile-picture', {
+            profile_picture_url: profilePictureUrl
+          });
+          console.log('Profile picture update response (direct):', pictureResponse.data);
+        } else {
+          // Otherwise use the server-side upload with multipart form
+          const pictureFormData = new FormData();
+          pictureFormData.append('profile_picture', formData.profile_picture);
+          
+          pictureResponse = await api.put('/users/profile-picture', pictureFormData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          console.log('Profile picture update response (server):', pictureResponse.data);
         }
-
-        console.log('Falling back to server-side upload');
-        response = await api.put('/users/profile', formDataToSend, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
       }
-
-      console.log('Profile update response:', response.data);
+      
+      // Get the final user data
+      const finalUserData = pictureResponse.data.user || profileResponse.data.user || profileResponse.data;
       
       // Ensure user data is complete before updating
       const updatedUser = {
-        ...response.data,
-        phone: response.data.phone || '',
-        bio: response.data.bio || ''
+        ...finalUserData,
+        phone: finalUserData.phone || '',
+        bio: finalUserData.bio || ''
       };
       
       // Update user in context
       updateUser(updatedUser);
       toast.success('Profile updated successfully!');
       
-      // If profile picture was updated, reload the preview
+      // Handle profile picture preview update
       if (formData.profile_picture) {
-        if (response.data.profile_picture) {
-          const imageUrl = getImageUrl(response.data.profile_picture);
-          console.log('Setting new profile picture URL after upload:', imageUrl);
-          setPreviewUrl(imageUrl);
-        } else if (profilePictureUrl) {
+        if (profilePictureUrl) {
+          // If we uploaded directly to Cloudinary, use that URL
           console.log('Setting directly uploaded profile picture URL:', profilePictureUrl);
           setPreviewUrl(profilePictureUrl);
+        } else if (finalUserData.profile_picture) {
+          // Otherwise use the returned profile picture path from the server
+          const imageUrl = getImageUrl(finalUserData.profile_picture);
+          console.log('Setting new profile picture URL after server upload:', imageUrl);
+          setPreviewUrl(imageUrl);
         }
       }
     } catch (err) {
