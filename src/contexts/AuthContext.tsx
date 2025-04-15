@@ -128,6 +128,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setIsLoading(true);
       console.log('Registering user with data:', JSON.stringify(data, null, 2));
+      
+      // Basic validation before API call
+      if (!data.phone || data.phone.trim() === '') {
+        const error = new Error('Phone number is required');
+        // @ts-ignore - adding a custom property to Error
+        error.response = { data: { errors: { phone: 'Phone number is required' } } };
+        throw error;
+      }
+      
+      if (!/^\d{10}$/.test(data.phone)) {
+        const error = new Error('Phone number must be exactly 10 digits');
+        // @ts-ignore - adding a custom property to Error
+        error.response = { data: { errors: { phone: 'Phone number must be exactly 10 digits' } } };
+        throw error;
+      }
+      
       const response = await api.post('/auth/register', data);
       console.log('Registration response:', response.data);
       const { user: userData, token } = response.data;
@@ -137,8 +153,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setError('');
     } catch (err) {
       console.error('Registration error:', err);
-      console.error('Registration error response:', err.response?.data);
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      
+      if (err.response?.data) {
+        console.error('Registration error response:', err.response.data);
+        
+        // Format validation errors
+        if (err.response.data.errors) {
+          const errorMessages = Object.values(err.response.data.errors).join(', ');
+          setError(errorMessages || 'Registration failed');
+        } else {
+          setError(err.response.data.message || 'Registration failed');
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'Registration failed');
+      }
+      
       throw err;
     } finally {
       setIsLoading(false);

@@ -60,7 +60,19 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       }
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Authentication error:', err);
+      
+      // Handle field-specific validation errors from the backend
+      if (err.response?.data?.errors) {
+        const errorMessages = Object.values(err.response.data.errors);
+        if (errorMessages.length > 0) {
+          setError(errorMessages.join(', '));
+        } else {
+          setError(err.response.data.message || 'An error occurred');
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'An error occurred');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -109,13 +121,17 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone (Optional)</Label>
+                  <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone"
                     name="phone"
                     type="tel"
                     value={formData.phone}
                     onChange={handleChange}
+                    required
+                    placeholder="Enter your 10-digit phone number"
+                    pattern="[0-9]{10}"
+                    title="Please enter a valid 10-digit phone number"
                   />
                 </div>
               </>
