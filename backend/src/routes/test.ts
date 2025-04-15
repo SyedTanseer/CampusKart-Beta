@@ -115,28 +115,159 @@ router.get('/cloudinary-status', async (req: Request, res: Response) => {
 });
 
 // Test Cloudinary upload with a simple placeholder image
-router.post('/cloudinary-test-upload', profileUpload.single('test_image'), async (req: Request, res: Response) => {
+router.post('/cloudinary-test-upload', async (req: Request, res: Response) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ 
-        status: 'error', 
-        message: 'No file uploaded' 
-      });
-    }
+    console.log('Received upload request');
     
-    res.json({ 
-      status: 'success', 
-      message: 'File uploaded successfully to Cloudinary',
-      file: req.file 
+    // Use single multer upload with error handling
+    profileUpload.single('test_image')(req, res, async (err) => {
+      if (err) {
+        console.error('Multer/Cloudinary error:', err);
+        return res.status(400).json({ 
+          status: 'error', 
+          message: 'File upload failed in multer middleware',
+          error: err instanceof Error ? err.message : String(err)
+        });
+      }
+      
+      // Check if file was uploaded
+      if (!req.file) {
+        console.log('No file uploaded');
+        return res.status(400).json({ 
+          status: 'error', 
+          message: 'No file uploaded' 
+        });
+      }
+      
+      console.log('File uploaded successfully via multer:', req.file);
+      
+      // Try manual upload as fallback
+      try {
+        // Get a unique filename
+        const uniqueFilename = `test-direct-${Date.now()}`;
+        
+        // Try direct Cloudinary upload if multer-storage-cloudinary failed
+        const manualUploadResult = await cloudinary.uploader.upload(
+          (req.file as Express.Multer.File).path,
+          { 
+            folder: 'campuskart/test',
+            public_id: uniqueFilename,
+            resource_type: 'auto'
+          }
+        );
+        
+        console.log('Manual upload successful:', manualUploadResult);
+        
+        res.json({ 
+          status: 'success', 
+          message: 'File uploaded successfully to Cloudinary',
+          file: req.file,
+          cloudinary: manualUploadResult
+        });
+      } catch (directUploadError) {
+        console.error('Direct Cloudinary upload failed:', directUploadError);
+        return res.status(500).json({ 
+          status: 'error', 
+          message: 'Direct Cloudinary upload failed',
+          error: directUploadError instanceof Error ? directUploadError.message : String(directUploadError),
+          cloudinaryConfig: {
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key_configured: !!process.env.CLOUDINARY_API_KEY,
+            api_secret_configured: !!process.env.CLOUDINARY_API_SECRET
+          }
+        });
+      }
     });
   } catch (error) {
     console.error('Cloudinary upload error:', error);
     res.status(500).json({ 
       status: 'error', 
       message: 'Failed to upload to Cloudinary',
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
+      cloudinaryConfig: {
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+        api_key_configured: !!process.env.CLOUDINARY_API_KEY,
+        api_secret_configured: !!process.env.CLOUDINARY_API_SECRET
+      }
     });
   }
+});
+
+// Serve a simple HTML form for testing direct Cloudinary uploads
+router.get('/cloudinary-direct', (req: Request, res: Response) => {
+  const htmlForm = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Direct Cloudinary Upload Test</title>
+      <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        h1 { color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        button { padding: 10px 15px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        .results { margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 4px; }
+        pre { overflow-x: auto; }
+      </style>
+      <!-- Include Cloudinary SDK -->
+      <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
+    </head>
+    <body>
+      <h1>Direct Cloudinary Upload Test</h1>
+      
+      <div class="form-group">
+        <button id="testConnection">Test Cloudinary Connection</button>
+      </div>
+      
+      <div class="form-group">
+        <button id="upload_widget" class="cloudinary-button">Upload files</button>
+      </div>
+      
+      <div class="results" id="results">
+        <h2>Results:</h2>
+        <pre id="resultContent">No results yet</pre>
+      </div>
+      
+      <script>
+        // First test connection
+        document.getElementById('testConnection').addEventListener('click', async () => {
+          try {
+            const response = await fetch('/api/test/cloudinary-status');
+            const data = await response.json();
+            document.getElementById('resultContent').textContent = JSON.stringify(data, null, 2);
+          } catch (error) {
+            document.getElementById('resultContent').textContent = 'Error: ' + error.message;
+          }
+        });
+        
+        // Direct Cloudinary Widget Upload
+        var myWidget = cloudinary.createUploadWidget({
+          cloudName: '${process.env.CLOUDINARY_CLOUD_NAME}', 
+          uploadPreset: 'campuskart',
+          folder: 'campuskart/test',
+          sources: ['local', 'camera'],
+          multiple: false
+        }, (error, result) => { 
+          if (!error && result && result.event === "success") { 
+            console.log('Done! Here is the image info: ', result.info); 
+            document.getElementById('resultContent').textContent = JSON.stringify(result.info, null, 2);
+          }
+          
+          if (error) {
+            console.error('Widget error:', error);
+            document.getElementById('resultContent').textContent = 'Error: ' + JSON.stringify(error, null, 2);
+          }
+        });
+        
+        document.getElementById("upload_widget").addEventListener("click", function(){
+          myWidget.open();
+        }, false);
+      </script>
+    </body>
+    </html>
+  `;
+  
+  res.send(htmlForm);
 });
 
 export default router; 
