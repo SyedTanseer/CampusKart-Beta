@@ -22,6 +22,7 @@ const ProfilePage = () => {
   });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isDirectUpload, setIsDirectUpload] = useState(true);
 
   useEffect(() => {
     // Only navigate away if authentication check is complete and user is not logged in
@@ -74,39 +75,92 @@ const ProfilePage = () => {
     }
   };
 
+  // Function to upload image directly to Cloudinary
+  const uploadImageToCloudinary = async (file: File): Promise<string> => {
+    try {
+      console.log('Uploading image directly to Cloudinary');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'campuskart');
+      formData.append('folder', 'campuskart/profiles');
+
+      const cloudName = 'dvs5ngrt5';
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Cloudinary upload failed:', errorData);
+        throw new Error(errorData.message || 'Failed to upload image');
+      }
+
+      const data = await response.json();
+      console.log('Cloudinary upload result:', data);
+      return data.secure_url;
+    } catch (error) {
+      console.error('Error uploading to Cloudinary:', error);
+      throw error;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('email', formData.email);
-      formDataToSend.append('phone', formData.phone);
-      formDataToSend.append('bio', formData.bio);
-      if (formData.profile_picture) {
-        formDataToSend.append('profile_picture', formData.profile_picture);
+      let profilePictureUrl = null;
+      
+      // If there's a profile picture and we're using direct upload, upload it to Cloudinary first
+      if (formData.profile_picture && isDirectUpload) {
+        try {
+          profilePictureUrl = await uploadImageToCloudinary(formData.profile_picture);
+          console.log('Image uploaded to Cloudinary:', profilePictureUrl);
+        } catch (uploadError) {
+          console.error('Cloudinary upload failed, falling back to server upload', uploadError);
+          setIsDirectUpload(false); // Fall back to server-side upload
+        }
       }
 
-      console.log('Sending profile update data:', {
+      // Prepare the data to send to the API
+      let profileData: any = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         bio: formData.bio,
-        hasProfilePicture: !!formData.profile_picture
-      });
-
-      // Log the form data for debugging
-      for (let pair of formDataToSend.entries()) {
-        console.log(pair[0], pair[1]);
+      };
+      
+      // If we uploaded directly to Cloudinary, include the URL
+      if (profilePictureUrl) {
+        profileData.profile_picture_url = profilePictureUrl;
       }
 
-      const response = await api.put('/users/profile', formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      let response;
+      
+      if (isDirectUpload) {
+        // If using direct upload, send JSON data
+        console.log('Sending profile update with direct uploaded image URL:', profileData);
+        response = await api.put('/users/profile', profileData);
+      } else {
+        // Fall back to form data with file upload through the server
+        const formDataToSend = new FormData();
+        formDataToSend.append('name', formData.name);
+        formDataToSend.append('email', formData.email);
+        formDataToSend.append('phone', formData.phone);
+        formDataToSend.append('bio', formData.bio);
+        if (formData.profile_picture) {
+          formDataToSend.append('profile_picture', formData.profile_picture);
+        }
+
+        console.log('Falling back to server-side upload');
+        response = await api.put('/users/profile', formDataToSend, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      }
 
       console.log('Profile update response:', response.data);
       
@@ -127,6 +181,9 @@ const ProfilePage = () => {
           const imageUrl = getImageUrl(response.data.profile_picture);
           console.log('Setting new profile picture URL after upload:', imageUrl);
           setPreviewUrl(imageUrl);
+        } else if (profilePictureUrl) {
+          console.log('Setting directly uploaded profile picture URL:', profilePictureUrl);
+          setPreviewUrl(profilePictureUrl);
         }
       }
     } catch (err) {

@@ -9,6 +9,11 @@ const router: RouterType = express.Router();
 
 // Serve an HTML form for testing
 router.get('/cloudinary-form', (req: Request, res: Response) => {
+  // Get the current host and protocol
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers.host;
+  const baseUrl = `${protocol}://${host}`;
+  
   const htmlForm = `
     <!DOCTYPE html>
     <html>
@@ -26,6 +31,7 @@ router.get('/cloudinary-form', (req: Request, res: Response) => {
     </head>
     <body>
       <h1>Cloudinary Upload Test</h1>
+      <p>Testing from: ${baseUrl}</p>
       
       <div class="form-group">
         <button id="testConnection">Test Cloudinary Connection</button>
@@ -47,6 +53,7 @@ router.get('/cloudinary-form', (req: Request, res: Response) => {
       <script>
         document.getElementById('testConnection').addEventListener('click', async () => {
           try {
+            // Using relative URL to avoid CORS issues
             const response = await fetch('/api/test/cloudinary-status');
             const data = await response.json();
             document.getElementById('resultContent').textContent = JSON.stringify(data, null, 2);
@@ -63,6 +70,7 @@ router.get('/cloudinary-form', (req: Request, res: Response) => {
             formData.append('test_image', fileInput.files[0]);
             
             try {
+              // Using relative URL to avoid CORS issues
               const response = await fetch('/api/test/cloudinary-test-upload', {
                 method: 'POST',
                 body: formData
@@ -195,6 +203,11 @@ router.post('/cloudinary-test-upload', async (req: Request, res: Response) => {
 
 // Serve a simple HTML form for testing direct Cloudinary uploads
 router.get('/cloudinary-direct', (req: Request, res: Response) => {
+  // Get the current host and protocol
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers.host;
+  const baseUrl = `${protocol}://${host}`;
+  
   const htmlForm = `
     <!DOCTYPE html>
     <html>
@@ -214,6 +227,7 @@ router.get('/cloudinary-direct', (req: Request, res: Response) => {
     </head>
     <body>
       <h1>Direct Cloudinary Upload Test</h1>
+      <p>Testing from: ${baseUrl}</p>
       
       <div class="form-group">
         <button id="testConnection">Test Cloudinary Connection</button>
@@ -232,6 +246,7 @@ router.get('/cloudinary-direct', (req: Request, res: Response) => {
         // First test connection
         document.getElementById('testConnection').addEventListener('click', async () => {
           try {
+            // Using relative URL to avoid CORS issues
             const response = await fetch('/api/test/cloudinary-status');
             const data = await response.json();
             document.getElementById('resultContent').textContent = JSON.stringify(data, null, 2);
@@ -262,6 +277,135 @@ router.get('/cloudinary-direct', (req: Request, res: Response) => {
         document.getElementById("upload_widget").addEventListener("click", function(){
           myWidget.open();
         }, false);
+      </script>
+    </body>
+    </html>
+  `;
+  
+  res.send(htmlForm);
+});
+
+// Create an upload preset programmatically
+router.get('/create-upload-preset', async (req: Request, res: Response) => {
+  try {
+    console.log('Attempting to create upload preset');
+    
+    // Check if preset already exists
+    try {
+      const existingPresets = await cloudinary.api.upload_presets();
+      const campuskartPreset = existingPresets.find(preset => preset.name === 'campuskart');
+      
+      if (campuskartPreset) {
+        return res.json({
+          status: 'success',
+          message: 'Upload preset already exists',
+          preset: campuskartPreset
+        });
+      }
+    } catch (error) {
+      console.error('Error checking for existing presets:', error);
+    }
+    
+    // Create the upload preset if it doesn't exist
+    const preset = await cloudinary.api.create_upload_preset({
+      name: 'campuskart',
+      unsigned: true,
+      folder: 'campuskart',
+      allowed_formats: 'jpg,jpeg,png,gif'
+    });
+    
+    res.json({
+      status: 'success',
+      message: 'Created upload preset successfully',
+      preset
+    });
+  } catch (error) {
+    console.error('Error creating upload preset:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Failed to create upload preset',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// Test a simple upload with the preset
+router.get('/test-preset-upload', (req: Request, res: Response) => {
+  // Get the current host and protocol
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers.host;
+  const baseUrl = `${protocol}://${host}`;
+  
+  const htmlForm = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Test Preset Upload</title>
+      <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        h1 { color: #333; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        button { padding: 10px 15px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        .results { margin-top: 20px; padding: 15px; background: #f5f5f5; border-radius: 4px; }
+        pre { overflow-x: auto; }
+      </style>
+    </head>
+    <body>
+      <h1>Test Preset Upload</h1>
+      <p>Testing from: ${baseUrl}</p>
+      
+      <div class="form-group">
+        <button id="createPreset">1. Create Preset</button>
+      </div>
+      
+      <form id="uploadForm">
+        <div class="form-group">
+          <label for="imageFile">2. Select Image:</label>
+          <input type="file" id="imageFile" accept="image/*" required>
+        </div>
+        <button type="submit">3. Upload with Preset</button>
+      </form>
+      
+      <div class="results" id="results">
+        <h2>Results:</h2>
+        <pre id="resultContent">No results yet</pre>
+      </div>
+      
+      <script>
+        document.getElementById('createPreset').addEventListener('click', async () => {
+          try {
+            // Create the preset if it doesn't exist
+            const response = await fetch('/api/test/create-upload-preset');
+            const data = await response.json();
+            document.getElementById('resultContent').textContent = JSON.stringify(data, null, 2);
+          } catch (error) {
+            document.getElementById('resultContent').textContent = 'Error: ' + error.message;
+          }
+        });
+        
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const fileInput = document.getElementById('imageFile');
+          if (fileInput.files.length > 0) {
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('upload_preset', 'campuskart');
+            formData.append('cloud_name', '${process.env.CLOUDINARY_CLOUD_NAME}');
+            
+            try {
+              // Direct upload to Cloudinary API
+              const response = await fetch('https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload', {
+                method: 'POST',
+                body: formData
+              });
+              const data = await response.json();
+              document.getElementById('resultContent').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+              document.getElementById('resultContent').textContent = 'Error: ' + error.message;
+            }
+          }
+        });
       </script>
     </body>
     </html>

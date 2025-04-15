@@ -27,17 +27,32 @@ const httpServer = createServer(app as any);
 const corsOptions = {
   origin: function(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
     const allowedOrigins = process.env.NODE_ENV === 'production' 
-      ? ['https://campuskart-beta.vercel.app', 'https://campuskart.vercel.app', 'https://campuskart-beta.onrender.com']
-      : ['http://localhost:3000'];
+      ? [
+          'https://campuskart-beta.vercel.app', 
+          'https://campuskart.vercel.app', 
+          'https://campuskart-beta.onrender.com',
+          'https://campuskart-backend-qw5z.onrender.com' // Allow backend to call itself
+        ]
+      : ['http://localhost:3000', 'http://localhost:5000']; // Allow backend-to-backend in dev
       
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('CORS: Allowing request with no origin');
+      return callback(null, true);
+    }
+    
+    // Always allow the backend URL to call itself for testing
+    if (origin.includes('campuskart-backend-qw5z.onrender.com')) {
+      console.log(`CORS: Allowing backend self-call from ${origin}`);
+      return callback(null, true);
+    }
     
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      console.log(`CORS: Allowing origin ${origin}`);
       callback(null, true);
     } else {
       console.error(`Origin ${origin} not allowed by CORS`);
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error(`Not allowed by CORS: ${origin}`));
     }
   },
   credentials: true,
