@@ -12,6 +12,7 @@ import authRoutes from './routes/auth';
 import productRoutes from './routes/product';
 import chatRoutes from './routes/chat';
 import userRoutes from './routes/user';
+import testRoutes from './routes/test';
 
 // Load environment variables
 dotenv.config();
@@ -68,6 +69,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/test', testRoutes);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {

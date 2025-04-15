@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { getImageUrl, api } from '@/lib/api';
 
@@ -119,7 +119,7 @@ const ProfilePage = () => {
       
       // Update user in context
       updateUser(updatedUser);
-      toast('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
       
       // If profile picture was updated, reload the preview
       if (formData.profile_picture) {
