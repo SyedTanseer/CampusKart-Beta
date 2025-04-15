@@ -79,7 +79,9 @@ const Header = () => {
     }
   };
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | undefined | null) => {
+    if (!name) return 'U';
+    
     return name
       .split(' ')
       .map((n) => n[0])
@@ -178,7 +180,7 @@ const Header = () => {
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={user?.profilePicture || ''} alt={user?.name || ''} />
+                          <AvatarImage src={user?.profile_picture || ''} alt={user?.name || ''} />
                           <AvatarFallback>{user ? getInitials(user.name) : 'U'}</AvatarFallback>
                         </Avatar>
                       </Button>
