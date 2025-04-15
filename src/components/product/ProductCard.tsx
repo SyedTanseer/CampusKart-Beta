@@ -33,9 +33,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
   const { user } = useAuth();
   const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   
-  // Check if user is the seller of this product or not
+  // Check if user is the seller of this product or has admin/developer privileges
   const isUserSeller = user && product.seller && 
     (user.id === product.seller._id || user._id === product.seller._id);
+  
+  const isAdminOrDeveloper = user?.user_type === 'admin' || user?.user_type === 'developer';
+  const canDeleteProduct = isUserSeller || isAdminOrDeveloper;
   
   const imageUrl = product.images && product.images.length > 0 
     ? product.images[0].startsWith('http') 
@@ -88,7 +91,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
           >
             {product.condition}
           </Badge>
-          {isUserSeller && (
+          {canDeleteProduct && (
             <Button
               variant="destructive"
               size="icon"

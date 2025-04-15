@@ -7,7 +7,7 @@ export interface User {
   phone?: string;
   bio?: string;
   profile_picture?: string;
-  user_type: 'buyer' | 'seller';
+  user_type: 'normal' | 'admin' | 'developer';
 }
 
 export interface Product {

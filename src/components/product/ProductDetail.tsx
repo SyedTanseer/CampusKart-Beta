@@ -55,7 +55,7 @@ const ProductDetail: React.FC = () => {
     };
 
     if (id) {
-      fetchProduct();
+    fetchProduct();
     }
   }, [id]);
 
@@ -191,10 +191,19 @@ const ProductDetail: React.FC = () => {
 
     const sellerId = typeof product.seller === 'string' ? product.seller : product.seller._id;
     const userId = user.id || user._id || JSON.parse(localStorage.getItem('user') || '{}').id;
-
-    // Compare seller ID with user ID
-    if (!userId || !sellerId || userId !== sellerId) {
-      console.log('Not authorized to delete:', { userId, sellerId });
+    const userType = user.user_type || JSON.parse(localStorage.getItem('user') || '{}').user_type;
+    
+    // Check if user is admin/developer or the product owner
+    const isAdminOrDeveloper = userType === 'admin' || userType === 'developer';
+    const isOwner = userId && sellerId && userId === sellerId;
+    
+    // Only allow deletion if user is admin/developer or the product owner
+    if (!isAdminOrDeveloper && !isOwner) {
+      console.log('Not authorized to delete:', { userId, sellerId, userType });
+      toast('Access denied', {
+        description: 'You do not have permission to delete this listing.',
+        duration: 3000,
+      });
       return;
     }
 
@@ -263,6 +272,8 @@ const ProductDetail: React.FC = () => {
   const sellerId = typeof product.seller === 'string' ? product.seller : product.seller._id;
   const userId = user?.id || user?._id || JSON.parse(localStorage.getItem('user') || '{}').id;
   const isUserSeller = Boolean(userId && sellerId && userId === sellerId);
+  const isAdminOrDeveloper = user?.user_type === 'admin' || user?.user_type === 'developer';
+  const canManageProduct = isUserSeller || isAdminOrDeveloper;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -274,8 +285,8 @@ const ProductDetail: React.FC = () => {
               <img 
                 src={getImageUrl(product.images[currentImageIndex])} 
                 alt={product.name} 
-                className="w-full h-96 object-contain transition-transform duration-700 hover:scale-105" 
-              />
+              className="w-full h-96 object-contain transition-transform duration-700 hover:scale-105" 
+            />
               {product.images && product.images.length > 1 && (
                 <div className="absolute top-0 left-0 w-full h-full flex items-center justify-between">
                   <button
@@ -334,18 +345,18 @@ const ProductDetail: React.FC = () => {
               >
                 {copied ? (
                   <Check 
-                    size={18} 
+                  size={18} 
                     className="mr-2 text-green-500 transition-all duration-300 group-hover:scale-110" 
                   />
                 ) : (
-                  <Share2 
-                    size={18} 
-                    className="mr-2 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:scale-110" 
-                  />
+                <Share2 
+                  size={18} 
+                  className="mr-2 text-muted-foreground group-hover:text-primary transition-all duration-300 group-hover:scale-110" 
+                />
                 )}
                 {copied ? 'Copied!' : 'Share'}
               </Button>
-              {isUserSeller && (
+              {canManageProduct && (
                 <Button 
                   variant="destructive"
                   className="flex items-center transition-all duration-200 group ml-auto"
@@ -383,8 +394,8 @@ const ProductDetail: React.FC = () => {
             <h2 className="text-xl font-semibold text-foreground mb-4">Seller Information</h2>
             {product?.seller ? (
               <>
-                <div className="flex items-center mb-4">
-                  <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mr-4 transition-all duration-300 hover:shadow-md hover:bg-primary hover:text-primary-foreground">
+            <div className="flex items-center mb-4">
+              <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mr-4 transition-all duration-300 hover:shadow-md hover:bg-primary hover:text-primary-foreground">
                     <img 
                       src={product.seller.profile_picture 
                         ? (product.seller.profile_picture.startsWith('http') 
@@ -394,12 +405,12 @@ const ProductDetail: React.FC = () => {
                       alt={product.seller.name || 'Seller'} 
                       className="w-full h-full rounded-full object-cover" 
                     />
-                  </div>
-                  <div>
+              </div>
+              <div>
                     <h3 className="font-semibold text-foreground">{product.seller.name || 'Anonymous Seller'}</h3>
                     <p className="text-sm text-muted-foreground">Verified Seller</p>
-                  </div>
-                </div>
+              </div>
+            </div>
 
                 <div className="space-y-4">
                   {/* Display phone number with improved error handling */}
@@ -443,14 +454,14 @@ const ProductDetail: React.FC = () => {
 
                   {/* Only show chat button if user is not the seller */}
                   {user && !isUserSeller && (
-                    <Button
+            <Button 
                       onClick={handleStartChat}
-                      variant="outline"
+              variant="outline"
                       className="w-full flex items-center justify-center gap-2 transition-all duration-200 hover:bg-accent"
-                    >
+            >
                       <MessageSquare size={18} className="text-primary" />
-                      Chat with Seller
-                    </Button>
+              Chat with Seller
+            </Button>
                   )}
                 </div>
               </>
@@ -487,61 +498,61 @@ const ProductDetail: React.FC = () => {
 
       {/* Only render chat dialog if user is not the seller */}
       {user && !isUserSeller && (
-        <Dialog open={showChat} onOpenChange={setShowChat}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Chat with {product?.seller?.name || 'Seller'}</DialogTitle>
-              <DialogDescription>
-                {previousChats.length > 0 
-                  ? `You have ${previousChats.length} previous conversation${previousChats.length > 1 ? 's' : ''} with this seller.`
-                  : 'Start a new conversation with the seller about this item.'}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col h-[400px]">
-              <div 
-                ref={messagesContainerRef}
-                onScroll={handleScroll}
-                className="flex-1 overflow-y-auto p-4"
-              >
-                {loadingChats ? (
-                  <div className="text-center py-4">Loading previous messages...</div>
-                ) : messages.length > 0 ? (
-                  <div className="flex flex-col gap-2">
-                    {messages.map((msg) => (
-                      <div key={msg._id}>
-                        <span className="text-sm text-muted-foreground">
-                          {msg.sender.name}:
-                        </span>
-                        <div className="rounded-lg px-3 py-2 bg-muted">
-                          <p className="text-sm">{msg.content}</p>
-                          <p className="text-xs mt-1 opacity-70">
-                            {format(new Date(msg.timestamp), 'h:mm a')}
-                          </p>
-                        </div>
+      <Dialog open={showChat} onOpenChange={setShowChat}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Chat with {product?.seller?.name || 'Seller'}</DialogTitle>
+            <DialogDescription>
+              {previousChats.length > 0 
+                ? `You have ${previousChats.length} previous conversation${previousChats.length > 1 ? 's' : ''} with this seller.`
+                : 'Start a new conversation with the seller about this item.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col h-[400px]">
+            <div 
+              ref={messagesContainerRef}
+              onScroll={handleScroll}
+              className="flex-1 overflow-y-auto p-4"
+            >
+              {loadingChats ? (
+                <div className="text-center py-4">Loading previous messages...</div>
+              ) : messages.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {messages.map((msg) => (
+                    <div key={msg._id}>
+                      <span className="text-sm text-muted-foreground">
+                        {msg.sender.name}:
+                      </span>
+                      <div className="rounded-lg px-3 py-2 bg-muted">
+                        <p className="text-sm">{msg.content}</p>
+                        <p className="text-xs mt-1 opacity-70">
+                          {format(new Date(msg.timestamp), 'h:mm a')}
+                        </p>
                       </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    No previous messages. Start the conversation!
-                  </div>
-                )}
-              </div>
-              <div className="border-t p-4">
-                <div className="flex gap-2">
-                  <Input
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Type your message..."
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  />
-                  <Button onClick={handleSendMessage} disabled={!message.trim()}>Send</Button>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
                 </div>
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  No previous messages. Start the conversation!
+                </div>
+              )}
+            </div>
+            <div className="border-t p-4">
+              <div className="flex gap-2">
+                <Input
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Type your message..."
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                />
+                <Button onClick={handleSendMessage} disabled={!message.trim()}>Send</Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </DialogContent>
+      </Dialog>
       )}
     </div>
   );
