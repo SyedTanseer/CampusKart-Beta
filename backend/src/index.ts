@@ -6,13 +6,18 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import authRoutes from './routes/auth';
-import productRoutes from './routes/product'; // Updated to use the copied file
-import chatRoutes from './routes/chat';
-import userRoutes from './routes/user'; // Updated to use the copied file
 import { connectDB } from './config/database';
+import ensureDirectoriesExist from './utils/ensureDirectories';
+import authRoutes from './routes/auth';
+import productRoutes from './routes/product';
+import chatRoutes from './routes/chat';
+import userRoutes from './routes/user';
 
+// Load environment variables
 dotenv.config();
+
+// Create directories needed for file storage in development mode
+ensureDirectoriesExist();
 
 const app = express();
 const httpServer = createServer(app as any);
@@ -38,8 +43,13 @@ const io = new Server(httpServer, {
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use('/uploads/profiles', express.static('uploads/profiles'));
+
+// Only serve static files locally in development mode
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+  app.use('/uploads/profiles', express.static('uploads/profiles'));
+  console.log('Static file serving enabled for local development');
+}
 
 // Routes
 app.use('/api/auth', authRoutes);

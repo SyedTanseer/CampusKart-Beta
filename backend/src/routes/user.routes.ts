@@ -3,8 +3,19 @@ import { login, register, updateProfile } from '../controllers/user.controller';
 import { authMiddleware } from '../middleware/auth';
 import multer, { FileFilterCallback } from 'multer';
 import path from 'path';
+import fs from 'fs';
+import { profileUpload } from '../config/cloudinary';
 
-// Configure multer for file uploads
+// Ensure uploads directory exists for development mode
+if (process.env.NODE_ENV !== 'production') {
+  const uploadDir = path.join(__dirname, '../../uploads/profiles');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log(`Created directory: ${uploadDir}`);
+  }
+}
+
+// Configure multer for local file uploads (development mode)
 const storage = multer.diskStorage({
   destination: function (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) {
     cb(null, 'uploads/profiles/');
@@ -15,7 +26,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({
+const localUpload = multer({
   storage: storage,
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB limit
@@ -28,6 +39,9 @@ const upload = multer({
     }
   }
 });
+
+// Choose upload middleware based on environment
+const upload = process.env.NODE_ENV === 'production' ? profileUpload : localUpload;
 
 const router: RouterType = Router();
 
