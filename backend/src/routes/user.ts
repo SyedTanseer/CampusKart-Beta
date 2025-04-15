@@ -94,7 +94,7 @@ router.put('/profile-picture', authenticateToken, profileUpload.single('profile_
     }
 
     // Get Cloudinary URL from the uploaded file
-    const profilePictureUrl = (req.file as Express.MulterS3.File).path;
+    const profilePictureUrl = (req.file as any).path;
 
     // Update user profile picture
     const updatedUser = await User.findByIdAndUpdate(

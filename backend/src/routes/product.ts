@@ -89,7 +89,7 @@ router.post('/', authenticateToken, productUpload.array('images', 5), async (req
     const { title, description, price, category, condition } = req.body;
     
     // Get the Cloudinary URLs from the uploaded files
-    const images = (req.files as Express.MulterS3.File[]).map(file => file.path);
+    const images = (req.files as any[]).map(file => file.path);
 
     const product = await Product.create({
       title,
@@ -129,7 +129,7 @@ router.put('/:id', authenticateToken, productUpload.array('images', 5), async (r
     }
 
     // Delete old images from Cloudinary if new ones are uploaded
-    if (req.files && (req.files as Express.MulterS3.File[]).length > 0) {
+    if (req.files && (req.files as any[]).length > 0) {
       for (const image of product.images) {
         if (image.includes('cloudinary')) {
           try {
@@ -153,8 +153,8 @@ router.put('/:id', authenticateToken, productUpload.array('images', 5), async (r
       condition,
     };
 
-    if (req.files && (req.files as Express.MulterS3.File[]).length > 0) {
-      updateData.images = (req.files as Express.MulterS3.File[]).map(file => file.path);
+    if (req.files && (req.files as any[]).length > 0) {
+      updateData.images = (req.files as any[]).map(file => file.path);
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(
