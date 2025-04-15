@@ -137,16 +137,17 @@ const RegisterPage = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone</Label>
+            <Label htmlFor="phone">Phone Number</Label>
             <Input
               id="phone"
               type="tel"
               value={formData.phone}
               onChange={handleInputChange}
               required
-              placeholder="Enter your phone number"
+              placeholder="Enter your 10-digit phone number"
               pattern="[0-9]{10}"
               title="Please enter a valid 10-digit phone number"
+              className={errors.phone ? "border-destructive" : ""}
             />
             {errors.phone && (
               <p className="text-sm text-destructive">{errors.phone}</p>
