@@ -44,6 +44,36 @@ api.interceptors.response.use(
 
 export { api };
 
+// Helper function to determine if a URL is a Cloudinary URL
+export const isCloudinaryUrl = (url: string) => {
+  return url && (url.includes('cloudinary.com') || url.startsWith('https://res.cloudinary.com'));
+};
+
+// Helper function to get the correct image URL
+export const getImageUrl = (imagePath: string) => {
+  if (!imagePath) return '/placeholder.svg';
+  
+  // If it's already a Cloudinary URL, return as is
+  if (isCloudinaryUrl(imagePath)) {
+    return imagePath;
+  }
+  
+  // If it's another full URL (starts with http or https), return as is
+  if (imagePath.startsWith('http')) {
+    return imagePath;
+  }
+  
+  // For local paths, ensure they start with the correct base URL
+  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  
+  // Convert Windows-style backslashes to forward slashes
+  const normalizedPath = imagePath.replace(/\\/g, '/');
+  
+  // For local paths, ensure they start with a slash
+  const finalPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+  return `${baseUrl}${finalPath}`;
+};
+
 export const getProducts = async () => {
   try {
     const response = await api.get('/products');

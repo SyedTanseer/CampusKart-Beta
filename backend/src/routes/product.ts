@@ -1,43 +1,13 @@
 import express = require('express');
 import { Request, Response, RouterType } from 'express';
-import multer, { FileFilterCallback } from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { FileFilterCallback } from 'multer';
 import Product from '../models/Product';
 import { IProduct } from '../types';
 import { authenticateToken } from '../middleware/auth';
+import { productUpload } from '../config/cloudinary';
+import cloudinary from '../config/cloudinary';
 
 const router: RouterType = express.Router();
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
-    const uploadDir = 'uploads/products';
-    // Create the directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({ 
-  storage,
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed'), false);
-    }
-  }
-});
 
 // Get all products
 router.get('/', async (req: Request, res: Response) => {
@@ -109,15 +79,17 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Create new product
-router.post('/', authenticateToken, upload.array('images', 5), async (req: Request, res: Response) => {
+// Create new product with Cloudinary
+router.post('/', authenticateToken, productUpload.array('images', 5), async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
     const { title, description, price, category, condition } = req.body;
-    const images = (req.files as any[]).map(file => file.path);
+    
+    // Get the Cloudinary URLs from the uploaded files
+    const images = (req.files as Express.MulterS3.File[]).map(file => file.path);
 
     const product = await Product.create({
       title,
@@ -136,8 +108,8 @@ router.post('/', authenticateToken, upload.array('images', 5), async (req: Reque
   }
 });
 
-// Update product
-router.put('/:id', authenticateToken, upload.array('images', 5), async (req: Request, res: Response) => {
+// Update product with Cloudinary
+router.put('/:id', authenticateToken, productUpload.array('images', 5), async (req: Request, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'User not authenticated' });
@@ -150,21 +122,27 @@ router.put('/:id', authenticateToken, upload.array('images', 5), async (req: Req
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    if (!product.seller.equals(req.user._id)) {
+    // Allow admin/developer users to update any product
+    const isAdminOrDeveloper = req.user.user_type === 'admin' || req.user.user_type === 'developer';
+    if (!isAdminOrDeveloper && !product.seller.equals(req.user._id)) {
       return res.status(403).json({ message: 'Not authorized to update this product' });
     }
 
-    // Delete old images if new ones are uploaded
-    if (req.files && (req.files as any[]).length > 0) {
-      product.images.forEach((imagePath: string) => {
-        try {
-          if (fs.existsSync(imagePath)) {
-            fs.unlinkSync(imagePath);
+    // Delete old images from Cloudinary if new ones are uploaded
+    if (req.files && (req.files as Express.MulterS3.File[]).length > 0) {
+      for (const image of product.images) {
+        if (image.includes('cloudinary')) {
+          try {
+            // Extract public_id from Cloudinary URL
+            const publicId = image.split('/').pop()?.split('.')[0];
+            if (publicId) {
+              await cloudinary.uploader.destroy(`campuskart/products/${publicId}`);
+            }
+          } catch (err) {
+            console.error(`Error deleting image from Cloudinary:`, err);
           }
-        } catch (err) {
-          console.error(`Error deleting image ${imagePath}:`, err);
         }
-      });
+      }
     }
 
     const updateData: Partial<IProduct> = {
@@ -175,8 +153,8 @@ router.put('/:id', authenticateToken, upload.array('images', 5), async (req: Req
       condition,
     };
 
-    if (req.files && (req.files as any[]).length > 0) {
-      updateData.images = (req.files as any[]).map(file => file.path);
+    if (req.files && (req.files as Express.MulterS3.File[]).length > 0) {
+      updateData.images = (req.files as Express.MulterS3.File[]).map(file => file.path);
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(
@@ -192,7 +170,7 @@ router.put('/:id', authenticateToken, upload.array('images', 5), async (req: Req
   }
 });
 
-// Delete product
+// Delete product with Cloudinary
 router.delete('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.user) {
@@ -211,25 +189,23 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
       return res.status(403).json({ message: 'Not authorized to delete this product' });
     }
 
-    // Delete product images - handle errors gracefully
+    // Delete product images from Cloudinary
     if (product.images && product.images.length > 0) {
-      product.images.forEach((imagePath: string) => {
+      for (const image of product.images) {
         try {
-          // Convert relative path to absolute path
-          const absolutePath = path.resolve(imagePath);
-          
-          // Check if the file exists before trying to delete it
-          if (fs.existsSync(absolutePath)) {
-            fs.unlinkSync(absolutePath);
-            console.log(`Deleted image: ${absolutePath}`);
-          } else {
-            console.log(`Image not found: ${absolutePath}`);
+          if (image.includes('cloudinary')) {
+            // Extract public_id from Cloudinary URL
+            const publicId = image.split('/').pop()?.split('.')[0];
+            if (publicId) {
+              await cloudinary.uploader.destroy(`campuskart/products/${publicId}`);
+              console.log(`Deleted image from Cloudinary: ${publicId}`);
+            }
           }
         } catch (err) {
-          console.error(`Error deleting image ${imagePath}:`, err);
+          console.error(`Error deleting image from Cloudinary:`, err);
           // Continue with other images even if one fails
         }
-      });
+      }
     }
 
     await Product.findByIdAndDelete(req.params.id);

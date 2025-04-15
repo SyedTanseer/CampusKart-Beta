@@ -7,9 +7,9 @@ import path from 'path';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import authRoutes from './routes/auth';
-import productRoutes from './routes/product';
+import productRoutes from './routes/product.cloudinary'; // Use Cloudinary product routes
 import chatRoutes from './routes/chat';
-import userRoutes from './routes/user';
+import userRoutes from './routes/user.cloudinary'; // Use Cloudinary user routes
 import { connectDB } from './config/database';
 
 dotenv.config();
