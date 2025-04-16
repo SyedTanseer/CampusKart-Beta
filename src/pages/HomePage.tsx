@@ -6,7 +6,7 @@ import { getProducts, getProductsByCategory, searchProducts } from '@/lib/api';
 import { Product } from '@/types';
 import ProductCard from '@/components/product/ProductCard';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, ListPlus, MessageCircle, MapPin } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const HomePage: React.FC = () => {
@@ -100,6 +100,7 @@ const HomePage: React.FC = () => {
               key={category.id}
               variant={selectedCategory === category.id ? 'default' : 'outline'}
               onClick={() => setSelectedCategory(category.id)}
+              className="transition-all duration-300 hover:scale-105"
             >
               {category.name}
             </Button>
@@ -125,26 +126,35 @@ const HomePage: React.FC = () => {
       <section className="mt-12">
         <h2 className="text-2xl font-semibold mb-6">How It Works</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold mb-2">1. List Your Item</h3>
-              <p className="text-gray-600">
+          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-2 border-transparent hover:border-primary/10">
+            <CardContent className="pt-6 flex flex-col items-center text-center p-6">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors duration-300 group-hover:scale-110">
+                <ListPlus className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors duration-300">1. List Your Item</h3>
+              <p className="text-muted-foreground group-hover:text-foreground transition-colors duration-300">
                 Create a listing with photos and details about your item
               </p>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold mb-2">2. Connect with Buyers</h3>
-              <p className="text-gray-600">
+          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-2 border-transparent hover:border-primary/10">
+            <CardContent className="pt-6 flex flex-col items-center text-center p-6">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors duration-300 group-hover:scale-110">
+                <MessageCircle className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors duration-300">2. Connect with Buyers</h3>
+              <p className="text-muted-foreground group-hover:text-foreground transition-colors duration-300">
                 Chat with interested buyers within your campus
               </p>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="pt-6">
-              <h3 className="text-xl font-semibold mb-2">3. Meet & Sell</h3>
-              <p className="text-gray-600">
+          <Card className="overflow-hidden group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 border-2 border-transparent hover:border-primary/10">
+            <CardContent className="pt-6 flex flex-col items-center text-center p-6">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors duration-300 group-hover:scale-110">
+                <MapPin className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors duration-300">3. Meet & Sell</h3>
+              <p className="text-muted-foreground group-hover:text-foreground transition-colors duration-300">
                 Arrange a safe meeting point to complete the transaction
               </p>
             </CardContent>

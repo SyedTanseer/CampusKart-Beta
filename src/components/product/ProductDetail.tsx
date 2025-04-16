@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Heart, Share2, MapPin, Calendar, RefreshCw, Shield, Phone, MessageSquare, ArrowLeft, ArrowRight, Trash2, Check, Copy } from 'lucide-react';
+import { Heart, Share2, MapPin, Calendar, RefreshCw, Shield, Phone, MessageSquare, ArrowLeft, ArrowRight, Trash2, Check, Copy, User2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Product, User, Message, Chat } from '@/types';
@@ -324,7 +324,6 @@ const ProductDetail: React.FC = () => {
           </div>
           
           <div className="bg-card rounded-lg shadow-md p-6 mb-6">
-            <h1 className="text-2xl font-bold text-foreground mb-4">{product.name}</h1>
             <div className="flex items-center text-muted-foreground mb-6">
               <Calendar size={16} className="mr-1 transition-transform hover:scale-110" />
               <span>Posted: {new Date(product.createdAt).toLocaleDateString()}</span>
@@ -390,21 +389,23 @@ const ProductDetail: React.FC = () => {
         
         {/* Right Column - Seller Info & Actions */}
         <div className="space-y-6">
-          <div className="bg-card rounded-lg shadow-md p-6 mb-6">
+          <div className="bg-card rounded-lg shadow-md p-6 mb-6 transition-all duration-300 hover:shadow-lg hover:translate-y-[-2px] hover:border-opacity-100 hover:border hover:border-primary/20">
             <h2 className="text-xl font-semibold text-foreground mb-4">Seller Information</h2>
             {product?.seller ? (
               <>
             <div className="flex items-center mb-4">
               <div className="w-16 h-16 bg-accent rounded-full flex items-center justify-center mr-4 transition-all duration-300 hover:shadow-md hover:bg-primary hover:text-primary-foreground">
-                    <img 
-                      src={product.seller.profile_picture 
-                        ? (product.seller.profile_picture.startsWith('http') 
-                            ? product.seller.profile_picture 
-                            : getImageUrl(product.seller.profile_picture))
-                        : "/placeholder.svg"} 
-                      alt={product.seller.name || 'Seller'} 
-                      className="w-full h-full rounded-full object-cover" 
-                    />
+                     {product.seller.profile_picture ? (
+                       <img 
+                         src={product.seller.profile_picture.startsWith('http') 
+                             ? product.seller.profile_picture 
+                             : getImageUrl(product.seller.profile_picture)} 
+                         alt={product.seller.name || 'Seller'} 
+                         className="w-full h-full rounded-full object-cover" 
+                       />
+                     ) : (
+                       <User2 className="h-8 w-8 text-muted-foreground" />
+                     )}
               </div>
               <div>
                     <h3 className="font-semibold text-foreground">{product.seller.name || 'Anonymous Seller'}</h3>

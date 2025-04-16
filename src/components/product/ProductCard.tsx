@@ -77,16 +77,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card className="overflow-hidden group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 rounded-lg border-2 border-transparent hover:border-primary/10">
       <Link to={`/product/${product._id}`}>
-        <div className="aspect-square relative">
+        <div className="aspect-square relative overflow-hidden">
           <PlaceholderImage
             src={imageUrl}
             alt={product.name}
-            className="object-cover w-full h-full"
+            className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <Badge 
-            className="absolute top-2 right-2" 
+            className="absolute top-2 right-2 transition-transform duration-300 group-hover:scale-110" 
             variant={product.condition === 'new' ? 'default' : 'secondary'}
           >
             {product.condition}
@@ -95,22 +96,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onRemove }) => {
             <Button
               variant="destructive"
               size="icon"
-              className="absolute top-2 left-2"
+              className="absolute top-2 left-2 opacity-70 hover:opacity-100 transition-opacity"
               onClick={handleRemove}
             >
               <Trash2 className="h-4 w-4" />
             </Button>
           )}
         </div>
-        <CardHeader className="p-4">
-          <h3 className="font-semibold text-lg truncate">{product.name}</h3>
-          <p className="text-2xl font-bold text-primary">₹{product.price.toLocaleString('en-IN')}</p>
+        <CardHeader className="p-4 transition-colors duration-300 group-hover:bg-muted/50">
+          <h3 className="font-semibold text-lg truncate group-hover:text-primary transition-colors duration-300">{product.name}</h3>
+          <p className="text-2xl font-bold text-primary transition-all duration-300 group-hover:scale-105 origin-left"
+          >₹{product.price.toLocaleString('en-IN')}</p>
         </CardHeader>
         <CardContent className="p-4 pt-0">
           <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
         </CardContent>
         <CardFooter className="p-4 pt-0 flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors duration-300">
             Seller: {product.seller?.name || 'Unknown'}
           </span>
           <span className="text-sm text-muted-foreground">

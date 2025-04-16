@@ -76,7 +76,16 @@ const ProductPage = () => {
             Back to results
           </Button>
           
-          <ProductDetail product={product} />
+          <div className="mb-6">
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground animate-in fade-in duration-500">
+              {product.name}
+            </h1>
+            <p className="text-muted-foreground mt-2 animate-in fade-in slide-in-from-bottom-2 duration-500 delay-150">
+              {product.category.charAt(0).toUpperCase() + product.category.slice(1)} | {product.condition.charAt(0).toUpperCase() + product.condition.slice(1)} Condition
+            </p>
+          </div>
+          
+          <ProductDetail />
         </div>
       </div>
     </ProductLayout>
